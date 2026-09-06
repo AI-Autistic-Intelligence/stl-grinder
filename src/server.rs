@@ -114,13 +114,22 @@ fn open_app_window(port: u16) {
         tokio::time::sleep(std::time::Duration::from_millis(300)).await;
         
         let app_arg = format!("--app={}", url);
-        
+        let profile_dir = std::env::temp_dir().join("stl-grinder-browser-profile");
+        let user_data_arg = format!("--user-data-dir={}", profile_dir.to_string_lossy());
+
         if let Some(browser_path) = find_standalone_browser() {
             println!("🚀 Launching Standalone App Window mode via: {:?}", browser_path);
-            let _ = std::process::Command::new(browser_path)
+            let child = std::process::Command::new(browser_path)
                 .arg(&app_arg)
+                .arg(&user_data_arg)
                 .arg("--name=3D STL Grinder Carver")
                 .spawn();
+
+            if let Ok(mut child_proc) = child {
+                let _ = child_proc.wait();
+                println!("👋 Standalone App Window closed by user. Terminating stl-grinder backend...");
+                std::process::exit(0);
+            }
         } else {
             let _ = webbrowser::open(&url);
         }
