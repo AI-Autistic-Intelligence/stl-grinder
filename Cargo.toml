@@ -1,0 +1,29 @@
+[package]
+name = "stl-grinder"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI-Autistic-Intelligence <info@ferrox-rust.dev>"]
+description = "Ultra-fast single-layer 3D mesh slicer, contour generator, and 2D/3D STL extruder powered by Ferrox Framework"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/AI-Autistic-Intelligence/stl-grinder"
+homepage = "https://ferrox-rust.dev"
+readme = "README.md"
+keywords = ["stl", "3d-printing", "slicer", "mesh", "ferrox"]
+categories = ["command-line-utilities", "graphics", "web-programming"]
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+colored = "2.1"
+anyhow = "1.0"
+stl_io = "0.7"
+svg = "0.18"
+
+# Ferrox Ecosystem Integration
+ferrox-app = "0.1.0"
+ferrox-transports = "0.1.0"
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1.0", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors"] }
+tempfile = "3.10"
