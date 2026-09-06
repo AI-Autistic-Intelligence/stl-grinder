@@ -21,8 +21,15 @@ pub async fn start_grinder_server(port: u16) -> Result<(), Box<dyn std::error::E
 
     let transport = HttpTransport::new(router, port);
 
-    println!("⚡ Launching Ferrox Framework HTTP Transport for Single-Layer Grinder on http://localhost:{}...", port);
-    println!("🌐 Interactive Web UI live at: http://localhost:{}", port);
+    let url = format!("http://localhost:{}", port);
+    println!("⚡ Launching Ferrox Framework HTTP Transport for Single-Layer Grinder on {}...", url);
+    println!("🌐 Interactive Web UI live at: {}", url);
+
+    // Auto-open default browser for standard users
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        let _ = webbrowser::open(&url);
+    });
 
     FerroxApp::new()
         .add_transport(transport)

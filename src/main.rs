@@ -16,13 +16,13 @@ use std::path::PathBuf;
 #[command(
     name = "stl-grinder",
     author = "AI-Autistic-Intelligence <info@ferrox-rust.dev>",
-    version = "0.1.0",
+    version = "0.2.1",
     about = "⚙️ Ultra-fast Single-Layer 3D Mesh Slicer, Contour Extractor & Extruder powered by Ferrox Framework",
     long_about = None
 )]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -45,7 +45,7 @@ enum Commands {
         output_dir: PathBuf,
     },
 
-    /// Start a Ferrox Framework HTTP API server for remote single-layer grinding
+    /// Start a Ferrox Framework HTTP API server and open interactive Web UI in browser
     Serve {
         /// Port to bind the Ferrox HTTP server to
         #[arg(short, long, default_value_t = 3000)]
@@ -58,12 +58,12 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Process {
+        Some(Commands::Process {
             file,
             slice_z,
             layer_height,
             output_dir,
-        } => {
+        }) => {
             let start = std::time::Instant::now();
             println!("\n{}", "============================================================".bright_blue());
             println!("⚙️  {} {}", "Single-Layer Grinding:".bold().white(), file.display().to_string().yellow().bold());
@@ -78,7 +78,7 @@ async fn main() -> Result<()> {
             println!("✂️   {:<24} {:.2} mm", "Target Z Slice Height:".bold(), cut_height);
 
             let contours = MeshSlicer::slice_at_z(&mesh, cut_height);
-            println!("➰  {:<24} {} contours", "Generated Single-Layer:".bold(), contours.len().to_string().green().bold());
+            println!("%  {:<24} {} contours", "Generated Single-Layer:".bold(), contours.len().to_string().green().bold());
 
             std::fs::create_dir_all(&output_dir)?;
 
@@ -98,9 +98,15 @@ async fn main() -> Result<()> {
             println!("============================================================\n");
         }
 
-        Commands::Serve { port } => {
-            println!("⚡ Ferrox Framework integration starting...");
+        Some(Commands::Serve { port }) => {
+            println!("⚡ Ferrox Framework Web UI starting on port {}...", port);
             start_grinder_server(port).await.map_err(|e| anyhow::anyhow!(e))?;
+        }
+
+        None => {
+            // Default when user double-clicks stl-grinder.exe!
+            println!("⚡ Double-clicked! Starting Ferrox Web UI & opening browser...");
+            start_grinder_server(3000).await.map_err(|e| anyhow::anyhow!(e))?;
         }
     }
 
