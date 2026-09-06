@@ -59,7 +59,8 @@ impl MeshCarver {
         let bottom_count = bottom_mesh.faces.len();
 
         // 3. Build Combined Non-Overlapping Side-by-Side Mesh (Centered around origin at Z=0)
-        let offset_x = config.chamber_radius_mm + 10.0;
+        let max_bbox_radius = ((bbox.max_x - bbox.min_x).max(bbox.max_y - bbox.min_y)) / 2.0;
+        let offset_x = (config.chamber_radius_mm.max(max_bbox_radius)) + 15.0;
         let mut combined_vertices = Vec::new();
         let mut combined_faces = Vec::new();
 
@@ -108,13 +109,13 @@ impl MeshCarver {
             faces: combined_faces,
         };
 
-        // Center individual top and bottom meshes around origin (0,0) in XY
+        // Center and ground individual top and bottom meshes around origin (0,0) at Z=0
         for v in &mut top_mesh.vertices {
-            *v = Vector::new([v[0] - center_x, v[1] - center_y, v[2]]);
+            *v = Vector::new([v[0] - center_x, v[1] - center_y, v[2] - z_split]);
         }
 
         for v in &mut bottom_mesh.vertices {
-            *v = Vector::new([v[0] - center_x, v[1] - center_y, v[2]]);
+            *v = Vector::new([v[0] - center_x, v[1] - center_y, z_split - v[2]]);
         }
 
         CarvedGrinderModel {

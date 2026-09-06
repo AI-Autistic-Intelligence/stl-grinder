@@ -180,9 +180,11 @@
         </div>
       </div>
 
-      <div class="downloads-container" id="downloadsContainer" style="display:none;">
+      <div class="downloads-container" id="downloadsContainer" style="display:none; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
         <button class="btn btn-download" onclick="downloadTopStl()">📥 Top Part STL</button>
         <button class="btn btn-download" onclick="downloadBottomStl()">📥 Bottom Part STL</button>
+        <button class="btn btn-download" style="background:#8b5cf6;" onclick="downloadCombinedStl()">📦 Both Parts (Side-by-Side)</button>
+        <button class="btn btn-download" style="background:#3b82f6;" onclick="downloadOriginalStl()">📄 Original File As-Is</button>
       </div>
     </div>
   </div>
@@ -577,6 +579,22 @@
       const link = document.createElement('a');
       link.href = 'data:application/octet-stream;base64,' + bottomB64;
       link.download = 'grinder_bottom.stl';
+      link.click();
+    }
+
+    function downloadCombinedStl() {
+      if (!combinedB64) return;
+      const link = document.createElement('a');
+      link.href = 'data:application/octet-stream;base64,' + combinedB64;
+      link.download = 'grinder_both_parts_side_by_side.stl';
+      link.click();
+    }
+
+    function downloadOriginalStl() {
+      if (!originalB64) return;
+      const link = document.createElement('a');
+      link.href = 'data:application/octet-stream;base64,' + originalB64;
+      link.download = (selectedFile ? selectedFile.name : 'original_model.stl');
       link.click();
     }
 
