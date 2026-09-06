@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use stl_io::{read_stl, IndexedMesh, Vector};
+use stl_io::{read_stl, IndexedMesh};
 use std::fs::File;
 use std::path::Path;
 

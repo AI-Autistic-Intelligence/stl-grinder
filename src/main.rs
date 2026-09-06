@@ -100,13 +100,13 @@ async fn main() -> Result<()> {
 
         Some(Commands::Serve { port }) => {
             println!("⚡ Ferrox Framework Web UI starting on port {}...", port);
-            start_grinder_server(port).await.map_err(|e| anyhow::anyhow!(e))?;
+            start_grinder_server(port).await.map_err(|e| anyhow::anyhow!("{}", e))?;
         }
 
         None => {
             // Default when user double-clicks stl-grinder.exe!
             println!("⚡ Double-clicked! Starting Ferrox Web UI & opening browser...");
-            start_grinder_server(3000).await.map_err(|e| anyhow::anyhow!(e))?;
+            start_grinder_server(3000).await.map_err(|e| anyhow::anyhow!("{}", e))?;
         }
     }
 

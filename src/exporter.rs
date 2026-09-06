@@ -1,6 +1,6 @@
 use crate::slicer::SingleLayerContour;
 use anyhow::Result;
-use stl_io::{IndexedMesh, Triangle, Vector};
+use stl_io::{Triangle, Vector};
 use svg::node::element::path::Data;
 use svg::node::element::Path;
 use svg::Document;
@@ -46,7 +46,6 @@ impl Exporter {
         layer_height: f32,
         output_path: P,
     ) -> Result<()> {
-        let mut vertices: Vec<Vector<f32>> = Vec::new();
         let mut triangles: Vec<Triangle> = Vec::new();
 
         for contour in contours {
@@ -54,26 +53,18 @@ impl Exporter {
                 continue;
             }
 
-            let start_idx = vertices.len();
             let n = contour.points.len();
 
-            // Bottom vertices (z = 0)
-            for pt in &contour.points {
-                vertices.push(Vector::new([pt.x, pt.y, 0.0]));
-            }
-            // Top vertices (z = layer_height)
-            for pt in &contour.points {
-                vertices.push(Vector::new([pt.x, pt.y, layer_height]));
-            }
-
-            // Side wall triangles
             for i in 0..n {
                 let next = (i + 1) % n;
 
-                let b1 = start_idx + i;
-                let b2 = start_idx + next;
-                let t1 = start_idx + n + i;
-                let t2 = start_idx + n + next;
+                let pt1 = &contour.points[i];
+                let pt2 = &contour.points[next];
+
+                let b1 = Vector::new([pt1.x, pt1.y, 0.0]);
+                let b2 = Vector::new([pt2.x, pt2.y, 0.0]);
+                let t1 = Vector::new([pt1.x, pt1.y, layer_height]);
+                let t2 = Vector::new([pt2.x, pt2.y, layer_height]);
 
                 triangles.push(Triangle {
                     normal: Vector::new([0.0, 0.0, 0.0]),
@@ -86,13 +77,8 @@ impl Exporter {
             }
         }
 
-        let mesh = IndexedMesh {
-            vertices,
-            faces: triangles,
-        };
-
         let mut out_file = File::create(output_path)?;
-        stl_io::write_stl(&mut out_file, mesh.vertices.iter(), mesh.faces.iter())?;
+        stl_io::write_stl(&mut out_file, triangles.iter())?;
 
         Ok(())
     }

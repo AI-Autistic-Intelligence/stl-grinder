@@ -1,5 +1,4 @@
-use stl_io::{IndexedMesh, Triangle, Vector};
-use std::collections::VecDeque;
+use stl_io::{IndexedMesh, Vector};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Point2D {

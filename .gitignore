@@ -2,3 +2,7 @@
 output/
 *.stl
 *.svg
+*.zip
+zig_ext/
+zig-cc.bat
+zig-cc.py

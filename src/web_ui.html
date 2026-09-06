@@ -152,6 +152,11 @@
 
       try {
         const res = await fetch('/api/v1/grind', { method: 'POST', body: formData });
+        if (!res.ok) {
+          const text = await res.text();
+          previewBox.innerHTML = `<p style="color: #ef4444;">Server Error (${res.status}): ${text || res.statusText}</p>`;
+          return;
+        }
         const data = await res.json();
         const elapsed = (performance.now() - start).toFixed(2);
 
