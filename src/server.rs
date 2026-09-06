@@ -15,10 +15,26 @@ use std::io::Write;
 use tempfile::NamedTempFile;
 use tower_http::cors::CorsLayer;
 
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+static CLIENT_CONNECTED: AtomicBool = AtomicBool::new(false);
+static LAST_PING_SECS: AtomicU64 = AtomicU64::new(0);
+static SHUTDOWN_CANCEL_TOKEN: AtomicU64 = AtomicU64::new(0);
+
+fn current_epoch_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
 pub async fn start_grinder_server(preferred_port: u16) -> Result<(), Box<dyn std::error::Error>> {
     let router = Router::new()
         .route("/", get(serve_web_ui))
         .route("/api/v1/health", get(health_check))
+        .route("/api/v1/ping", get(ping_heartbeat))
+        .route("/api/v1/shutdown", post(shutdown_server))
         .route("/api/v1/grind", post(grind_stl_mesh))
         .route("/api/v1/analyze", post(analyze_stl_mesh))
         .route("/api/v1/carve_grinder", post(carve_grinder_3d))
@@ -61,11 +77,45 @@ pub async fn start_grinder_server(preferred_port: u16) -> Result<(), Box<dyn std
     println!("⚡ Launching Ferrox Framework HTTP Transport (Localhost Loopback Only) on {}...", url);
     println!("🌐 Interactive Web UI live at: {}", url);
 
+    // Monitor client heartbeats and shut down when all app windows are closed
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            if CLIENT_CONNECTED.load(Ordering::SeqCst) {
+                let last = LAST_PING_SECS.load(Ordering::SeqCst);
+                let now = current_epoch_secs();
+                if now > last && (now - last) >= 15 {
+                    println!("👋 Heartbeat timeout (no active client window). Terminating stl-grinder backend...");
+                    std::process::exit(0);
+                }
+            }
+        }
+    });
+
     open_app_window(bound_port);
 
     axum::serve(listener, router).await?;
 
     Ok(())
+}
+
+async fn ping_heartbeat() -> Json<Value> {
+    CLIENT_CONNECTED.store(true, Ordering::SeqCst);
+    LAST_PING_SECS.store(current_epoch_secs(), Ordering::SeqCst);
+    SHUTDOWN_CANCEL_TOKEN.fetch_add(1, Ordering::SeqCst);
+    Json(json!({ "status": "alive" }))
+}
+
+async fn shutdown_server() -> Json<Value> {
+    let token = SHUTDOWN_CANCEL_TOKEN.fetch_add(1, Ordering::SeqCst) + 1;
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+        if SHUTDOWN_CANCEL_TOKEN.load(Ordering::SeqCst) == token {
+            println!("👋 App window closed by user. Terminating stl-grinder backend...");
+            std::process::exit(0);
+        }
+    });
+    Json(json!({ "status": "scheduled_shutdown" }))
 }
 
 fn find_standalone_browser() -> Option<std::path::PathBuf> {
@@ -119,17 +169,11 @@ fn open_app_window(port: u16) {
 
         if let Some(browser_path) = find_standalone_browser() {
             println!("🚀 Launching Standalone App Window mode via: {:?}", browser_path);
-            let child = std::process::Command::new(browser_path)
+            let _ = std::process::Command::new(browser_path)
                 .arg(&app_arg)
                 .arg(&user_data_arg)
                 .arg("--name=3D STL Grinder Carver")
                 .spawn();
-
-            if let Ok(mut child_proc) = child {
-                let _ = child_proc.wait();
-                println!("👋 Standalone App Window closed by user. Terminating stl-grinder backend...");
-                std::process::exit(0);
-            }
         } else {
             let _ = webbrowser::open(&url);
         }

@@ -197,6 +197,16 @@
   </footer>
 
   <script>
+    // Immediate heartbeat ping loop to keep backend active while window is open
+    (function startHeartbeat() {
+      function ping() { fetch('/api/v1/ping').catch(() => {}); }
+      ping();
+      setInterval(ping, 2000);
+    })();
+    window.addEventListener('beforeunload', () => {
+      navigator.sendBeacon('/api/v1/shutdown');
+    });
+
     let selectedFile = null;
     let analysisData = null;
     let originalGeometry = null;
