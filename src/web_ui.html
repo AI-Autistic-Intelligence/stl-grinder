@@ -24,22 +24,22 @@
     header h1 { font-size: 2.2rem; margin-bottom: 0.3rem; }
     header p { color: var(--text-muted); font-size: 1.05rem; }
     .badge { background: linear-gradient(135deg, #ff5722, #ff9800); color: #fff; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: bold; font-size: 0.85rem; }
-    .container { display: grid; grid-template-columns: 420px 1fr; gap: 1.5rem; width: 100%; max-width: 1300px; }
-    @media (max-width: 950px) { .container { grid-template-columns: 1fr; } }
+    .container { display: grid; grid-template-columns: 440px 1fr; gap: 1.5rem; width: 100%; max-width: 1350px; }
+    @media (max-width: 980px) { .container { grid-template-columns: 1fr; } }
     .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-    .drop-zone { border: 2px dashed var(--accent); border-radius: 12px; padding: 1.8rem 1rem; text-align: center; cursor: pointer; transition: 0.2s ease; background: rgba(255,87,34,0.03); }
+    .drop-zone { border: 2px dashed var(--accent); border-radius: 12px; padding: 1.4rem 1rem; text-align: center; cursor: pointer; transition: 0.2s ease; background: rgba(255,87,34,0.03); }
     .drop-zone:hover, .drop-zone.dragover { background: rgba(255,87,34,0.1); border-color: #ff9800; }
-    .drop-zone p { margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
-    .control-group { margin-top: 1.2rem; }
-    .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem; }
+    .drop-zone p { margin-top: 0.3rem; color: var(--text-muted); font-size: 0.85rem; }
+    .control-group { margin-top: 1.1rem; }
+    .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.88rem; }
     input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
     input[type="number"] { background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 6px; width: 80px; text-align: center; }
-    .checkbox-group { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; background: rgba(255,255,255,0.03); padding: 0.6rem 0.8rem; border-radius: 8px; }
-    .btn { background: var(--accent); color: #fff; border: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 1.2rem; font-size: 1rem; transition: 0.2s; }
+    .checkbox-group { display: flex; align-items: center; justify-content: space-between; margin-top: 0.9rem; background: rgba(255,255,255,0.03); padding: 0.6rem 0.8rem; border-radius: 8px; }
+    .btn { background: var(--accent); color: #fff; border: none; padding: 0.85rem 1.2rem; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 1.2rem; font-size: 1rem; transition: 0.2s; }
     .btn:hover { background: var(--accent-hover); }
-    .btn-download { background: var(--success); margin-top: 0.6rem; }
-    .btn-download:hover { background: #059669; }
-    .preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 480px; background: #090d16; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+    .btn-download { background: var(--success); margin-top: 0.4rem; padding: 0.65rem 0.8rem; font-size: 0.85rem; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; }
+    .btn-download:hover { opacity: 0.9; }
+    .preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 520px; background: #090d16; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden; }
     #canvasContainer { width: 100%; height: 100%; cursor: grab; }
     #canvasContainer:active { cursor: grabbing; }
     .viewport-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10; }
@@ -49,7 +49,7 @@
     .stat-item { background: rgba(255,255,255,0.04); padding: 0.6rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); text-align: center; }
     .stat-item span { display: block; color: var(--text-muted); font-size: 0.75rem; }
     .stat-item strong { color: var(--accent); font-size: 1rem; }
-    .downloads-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    .downloads-container { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 1rem; }
     footer { margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
     footer a { color: var(--accent); text-decoration: none; font-weight: bold; }
   </style>
@@ -61,13 +61,33 @@
   </header>
 
   <div class="container">
-    <!-- Left Column: Upload & Parameters -->
     <div class="card">
       <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        <div style="font-size: 2.5rem;">📥</div>
+        <div style="font-size: 2.2rem;">📥</div>
         <h3>Drag & Drop 3D STL file here</h3>
         <p>or click to browse from computer</p>
         <input type="file" id="fileInput" accept=".stl" style="display:none;" onchange="handleFileSelect(event)">
+      </div>
+
+      <div style="background:rgba(255,255,255,0.03); padding:0.8rem; border-radius:10px; margin-top:1rem; border:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span style="font-weight:600; font-size:0.85rem;">🔄 3D Orientation & Alignment</span>
+          <button class="vp-btn" style="padding:2px 8px; font-size:0.75rem;" onclick="resetModelRotation()">🎯 Lay Flat</button>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+          <div>
+            <label style="font-size:0.72rem; color:var(--text-muted);">Pitch X</label>
+            <input type="range" id="rotX" min="-180" max="180" value="0" step="5" oninput="updateModelRotation()">
+          </div>
+          <div>
+            <label style="font-size:0.72rem; color:var(--text-muted);">Roll Y</label>
+            <input type="range" id="rotY" min="-180" max="180" value="0" step="5" oninput="updateModelRotation()">
+          </div>
+          <div>
+            <label style="font-size:0.72rem; color:var(--text-muted);">Yaw Z</label>
+            <input type="range" id="rotZ" min="-180" max="180" value="0" step="5" oninput="updateModelRotation()">
+          </div>
+        </div>
       </div>
 
       <div class="control-group">
@@ -119,15 +139,12 @@
       </div>
 
       <div class="checkbox-group">
-        <label for="recessTeeth">🔲 Recess Teeth (Incavati per stampa 3D)</label>
+        <label for="recessTeeth">🔲 Recess Teeth</label>
         <input type="checkbox" id="recessTeeth" checked style="width:20px; height:20px; accent-color:var(--accent);">
       </div>
-      <p style="font-size:0.78rem; color:var(--success); margin-top:0.3rem;">✓ Keeps teeth 100% inside cavity so split face rests flat on 3D printer bed without external supports</p>
-
       <button class="btn" onclick="carveGrinderModel()">⚡ Carve 3D Grinder Model</button>
     </div>
 
-    <!-- Right Column: 3D Viewport & Controls -->
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
         <h3>🖼️ Interactive 3D Viewport (360° Orbit)</h3>
@@ -137,7 +154,7 @@
       <div class="preview-box">
         <div class="viewport-controls">
           <button class="vp-btn" onclick="resetCamera()">🎯 Reset Camera</button>
-          <button class="vp-btn" onclick="toggleExplodedView()">💥 Toggle Exploded View</button>
+          <button class="vp-btn" id="btnToggleView" onclick="toggleCarvedViewMode()">📦 Side-by-Side View</button>
           <button class="vp-btn" onclick="toggleWireframe()">🕸️ Wireframe</button>
         </div>
         <div id="canvasContainer"></div>
@@ -163,11 +180,9 @@
         </div>
       </div>
 
-      <div class="downloads-container" id="downloadsContainer" style="display:none; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+      <div class="downloads-container" id="downloadsContainer" style="display:none;">
         <button class="btn btn-download" onclick="downloadTopStl()">📥 Top Part STL</button>
         <button class="btn btn-download" onclick="downloadBottomStl()">📥 Bottom Part STL</button>
-        <button class="btn btn-download" style="background:#8b5cf6;" onclick="downloadCombinedStl()">📦 Both Parts (Side-by-Side)</button>
-        <button class="btn btn-download" style="background:#3b82f6;" onclick="downloadOriginalStl()">📄 Original File As-Is</button>
       </div>
     </div>
   </div>
@@ -179,16 +194,18 @@
   <script>
     let selectedFile = null;
     let analysisData = null;
+    let originalGeometry = null;
+    let originalMesh = null;
     let topB64 = null;
     let bottomB64 = null;
     let combinedB64 = null;
     let originalB64 = null;
 
-    // Three.js 3D Interactive Viewport
     let scene, camera, renderer, controls;
-    let topMeshGroup = null, bottomMeshGroup = null;
-    let isExploded = false;
+    let topMeshGroup = null, bottomMeshGroup = null, carvedMeshGroup = null;
+    let sliceOverlayGroup = null, chamberCylinderMesh = null, zSplitPlaneMesh = null;
     let isWireframe = false;
+    let viewModeIsSideBySide = true;
 
     function init3D() {
       const container = document.getElementById('canvasContainer');
@@ -196,7 +213,7 @@
       scene.background = new THREE.Color(0x090d16);
 
       camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 2000);
-      camera.position.set(0, -150, 100);
+      camera.position.set(0, -140, 90);
       camera.up.set(0, 0, 1);
 
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -206,27 +223,24 @@
       dirLight1.position.set(100, 100, 200);
       scene.add(dirLight1);
 
-      const dirLight2 = new THREE.DirectionalLight(0xff5722, 0.5);
-      dirLight2.position.set(-100, -100, -50);
-      scene.add(dirLight2);
-
-      const gridHelper = new THREE.GridHelper(300, 30, 0xff5722, 0x334155);
-      gridHelper.rotation.x = Math.PI / 2;
-      scene.add(gridHelper);
-
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
       container.appendChild(renderer.domElement);
 
-      // OrbitControls for 360° Mouse Rotation, Pan, Zoom
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.target.set(0, 0, 0);
+      controls.target.set(0, 0, 25);
 
       window.addEventListener('resize', onWindowResize);
       animate();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls) controls.update();
+      if (renderer && scene && camera) renderer.render(scene, camera);
     }
 
     function onWindowResize() {
@@ -236,46 +250,17 @@
       renderer.setSize(container.clientWidth, container.clientHeight);
     }
 
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-
     function resetCamera() {
-      camera.position.set(0, -150, 100);
-      controls.target.set(0, 0, 0);
+      camera.position.set(0, -140, 90);
+      controls.target.set(0, 0, 25);
       controls.update();
     }
 
     function toggleWireframe() {
       isWireframe = !isWireframe;
-      scene.traverse(child => {
-        if (child.isMesh && child.material) {
-          child.material.wireframe = isWireframe;
-        }
-      });
-    }
-
-    function toggleExplodedView() {
-      isExploded = !isExploded;
-      const offset = isExploded ? 30 : 0;
-      if (topMeshGroup) topMeshGroup.position.z = offset;
-      if (bottomMeshGroup) bottomMeshGroup.position.z = -offset;
-    }
-
-    window.onload = init3D;
-
-    function updateWall(v) { document.getElementById('wallVal').innerText = v + ' mm'; }
-    function updateDiam(v) { document.getElementById('diamVal').innerText = (parseFloat(v)).toFixed(1) + ' mm'; }
-    function updateDepth(v) { document.getElementById('depthVal').innerText = v + ' mm'; }
-    function updateZSplit(v) {
-      if (analysisData) {
-        const minZ = analysisData.min_z;
-        const maxZ = analysisData.max_z;
-        const z = minZ + (maxZ - minZ) * (v / 100.0);
-        document.getElementById('zSplitVal').innerText = z.toFixed(1) + ' mm';
-      }
+      if (topMeshGroup) topMeshGroup.traverse(child => { if (child.isMesh) child.material.wireframe = isWireframe; });
+      if (bottomMeshGroup) bottomMeshGroup.traverse(child => { if (child.isMesh) child.material.wireframe = isWireframe; });
+      if (carvedMeshGroup) carvedMeshGroup.traverse(child => { if (child.isMesh) child.material.wireframe = isWireframe; });
     }
 
     const dropZone = document.getElementById('dropZone');
@@ -305,65 +290,148 @@
       const reader = new FileReader();
       reader.onload = function (e) {
         const loader = new THREE.STLLoader();
-        const geometry = loader.parse(e.target.result);
+        originalGeometry = loader.parse(e.target.result);
+
+        originalGeometry.computeBoundingBox();
+        const box = originalGeometry.boundingBox;
+        const cx = (box.max.x + box.min.x) / 2.0;
+        const cy = (box.max.y + box.min.y) / 2.0;
+        const minZ = box.min.z;
+        originalGeometry.translate(-cx, -cy, -minZ);
+        originalGeometry.computeBoundingBox();
 
         if (topMeshGroup) scene.remove(topMeshGroup);
         if (bottomMeshGroup) scene.remove(bottomMeshGroup);
-
-        geometry.computeBoundingBox();
-        const center = new THREE.Vector3();
-        geometry.boundingBox.getCenter(center);
-        geometry.center(); // Center geometry at origin
+        if (carvedMeshGroup) scene.remove(carvedMeshGroup);
 
         const material = new THREE.MeshPhongMaterial({
           color: 0x38bdf8,
           specular: 0x111111,
           shininess: 100,
-          flatShading: true
+          flatShading: true,
+          wireframe: isWireframe
         });
 
-        const mesh = new THREE.Mesh(geometry, material);
+        originalMesh = new THREE.Mesh(originalGeometry, material);
         topMeshGroup = new THREE.Group();
-        topMeshGroup.add(mesh);
+        topMeshGroup.add(originalMesh);
         scene.add(topMeshGroup);
 
         document.getElementById('placeholderText').style.display = 'none';
         resetCamera();
+        createSliceOverlay();
+        updateSliceOverlay();
       };
       reader.readAsArrayBuffer(file);
     }
 
+    function createSliceOverlay() {
+      if (sliceOverlayGroup) scene.remove(sliceOverlayGroup);
+      sliceOverlayGroup = new THREE.Group();
+
+      const cylGeom = new THREE.CylinderGeometry(20, 20, 10, 32);
+      cylGeom.rotateX(Math.PI / 2);
+      const cylMat = new THREE.MeshBasicMaterial({
+        color: 0x00f2fe,
+        transparent: true,
+        opacity: 0.35,
+        wireframe: true,
+        depthWrite: false
+      });
+      chamberCylinderMesh = new THREE.Mesh(cylGeom, cylMat);
+      sliceOverlayGroup.add(chamberCylinderMesh);
+
+      const planeGeom = new THREE.CircleGeometry(25, 32);
+      const planeMat = new THREE.MeshBasicMaterial({
+        color: 0xff5722,
+        transparent: true,
+        opacity: 0.55,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      zSplitPlaneMesh = new THREE.Mesh(planeGeom, planeMat);
+      sliceOverlayGroup.add(zSplitPlaneMesh);
+
+      scene.add(sliceOverlayGroup);
+    }
+
+    function updateSliceOverlay() {
+      if (!sliceOverlayGroup || !analysisData) return;
+
+      const diam = parseFloat(document.getElementById('chamberDiameter').value) || 40;
+      const depth = parseFloat(document.getElementById('chamberDepth').value) || 10;
+      const r = diam / 2.0;
+
+      const v = parseFloat(document.getElementById('zSplit').value) || 50;
+      const zSplitVal = analysisData.min_z + analysisData.height_mm * (v / 100.0);
+      const relativeZSplit = zSplitVal - analysisData.min_z;
+
+      chamberCylinderMesh.scale.set(r / 20.0, depth / 10.0, r / 20.0);
+      chamberCylinderMesh.position.set(0, 0, relativeZSplit);
+
+      zSplitPlaneMesh.scale.set((r + 10) / 25.0, (r + 10) / 25.0, 1.0);
+      zSplitPlaneMesh.position.set(0, 0, relativeZSplit);
+    }
+
+    function updateModelRotation() {
+      if (!originalMesh) return;
+      const rx = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotX').value) || 0);
+      const ry = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotY').value) || 0);
+      const rz = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotZ').value) || 0);
+
+      originalMesh.rotation.set(rx, ry, rz);
+      updateSliceOverlay();
+    }
+
+    function resetModelRotation() {
+      document.getElementById('rotX').value = 0;
+      document.getElementById('rotY').value = 0;
+      document.getElementById('rotZ').value = 0;
+      updateModelRotation();
+    }
+
+    function updateWall(v) {
+      document.getElementById('wallVal').innerText = parseFloat(v).toFixed(1) + ' mm';
+    }
+
+    function updateDiam(v) {
+      document.getElementById('diamVal').innerText = parseFloat(v).toFixed(1) + ' mm';
+      updateSliceOverlay();
+    }
+
+    function updateDepth(v) {
+      document.getElementById('depthVal').innerText = parseFloat(v).toFixed(1) + ' mm';
+      updateSliceOverlay();
+    }
+
+    function updateZSplit(v) {
+      if (analysisData) {
+        const z = analysisData.min_z + analysisData.height_mm * (v / 100.0);
+        document.getElementById('zSplitVal').innerText = z.toFixed(1) + ' mm';
+        document.getElementById('statSplitZ').innerText = z.toFixed(1) + ' mm';
+      }
+      updateSliceOverlay();
+    }
+
     async function analyzeModel() {
       if (!selectedFile) return;
-
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('wall_thickness', document.getElementById('wallThickness').value);
-
       document.getElementById('statusBadge').innerText = '🔍 Analyzing geometry...';
-
       try {
         const res = await fetch('/api/v1/analyze', { method: 'POST', body: formData });
         const data = await res.json();
-
         if (data.success) {
           analysisData = data.analysis;
           const maxD = analysisData.max_safe_chamber_radius_mm * 2.0;
-
           document.getElementById('maxDiameterLabel').innerText = maxD.toFixed(1) + ' mm';
           document.getElementById('statMaxDiam').innerText = maxD.toFixed(1) + ' mm';
-
-          const diamSlider = document.getElementById('chamberDiameter');
-          diamSlider.max = maxD.toFixed(1);
-          diamSlider.value = (maxD * 0.9).toFixed(1);
-          updateDiam(diamSlider.value);
-
           const zSlider = document.getElementById('zSplit');
           const zPct = ((analysisData.optimal_z_split_mm - analysisData.min_z) / analysisData.height_mm) * 100.0;
           zSlider.value = zPct.toFixed(0);
           updateZSplit(zSlider.value);
-
-          document.getElementById('statusBadge').innerText = '✅ Optimal Section Found (3D Orbit Ready)';
+          document.getElementById('statusBadge').innerText = '✅ Section Calculated (3D Real-time Visualizer Active)';
         }
       } catch (err) {
         document.getElementById('statusBadge').innerText = '❌ Error analyzing file';
@@ -375,16 +443,23 @@
         alert('Please upload an STL file first!');
         return;
       }
-
+      let fileToSend = selectedFile;
+      if (originalMesh && (originalMesh.rotation.x !== 0 || originalMesh.rotation.y !== 0 || originalMesh.rotation.z !== 0)) {
+        const rotatedGeom = originalGeometry.clone();
+        rotatedGeom.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(originalMesh.rotation));
+        rotatedGeom.computeBoundingBox();
+        const minZ = rotatedGeom.boundingBox.min.z;
+        rotatedGeom.translate(0, 0, -minZ);
+        const stlBlob = exportGeometryToSTLBlob(rotatedGeom);
+        fileToSend = new File([stlBlob], selectedFile.name, { type: 'application/octet-stream' });
+      }
       const formData = new FormData();
-      formData.append('file', selectedFile);
-
+      formData.append('file', fileToSend);
       if (analysisData) {
         const v = document.getElementById('zSplit').value;
         const z = analysisData.min_z + analysisData.height_mm * (v / 100.0);
         formData.append('z_split', z.toString());
       }
-
       formData.append('chamber_radius', (document.getElementById('chamberDiameter').value / 2.0).toString());
       formData.append('chamber_height', document.getElementById('chamberDepth').value);
       formData.append('wall_thickness', document.getElementById('wallThickness').value);
@@ -392,25 +467,21 @@
       formData.append('magnet_diameter', document.getElementById('magnetDiameter').value);
       formData.append('magnet_depth', document.getElementById('magnetDepth').value);
       formData.append('recess_teeth', document.getElementById('recessTeeth').checked.toString());
-
-      document.getElementById('statusBadge').innerText = '⚡ Carving 3D Mesh in Rust...';
-
+      document.getElementById('statusBadge').innerText = '⚡ Carving 3D Mesh...';
       try {
         const res = await fetch('/api/v1/carve_grinder', { method: 'POST', body: formData });
         const data = await res.json();
-
         if (data.success) {
           topB64 = data.top_stl_b64;
           bottomB64 = data.bottom_stl_b64;
           combinedB64 = data.combined_stl_b64;
           originalB64 = data.original_stl_b64;
-
-          renderCarved3DMeshes(topB64, bottomB64);
-
+          if (sliceOverlayGroup) scene.remove(sliceOverlayGroup);
+          renderCarved3DMeshes(combinedB64);
           document.getElementById('statTopFaces').innerText = data.top_triangles;
           document.getElementById('statBottomFaces').innerText = data.bottom_triangles;
           document.getElementById('downloadsContainer').style.display = 'grid';
-          document.getElementById('statusBadge').innerText = '✨ 3D Carved Mesh Loaded! Orbit 360° with Mouse';
+          document.getElementById('statusBadge').innerText = '✨ 3D Carved Parts Grounded Flat & Side-by-Side on Bed!';
         } else {
           alert('Error: ' + data.error);
         }
@@ -419,31 +490,68 @@
       }
     }
 
-    function renderCarved3DMeshes(topB64, bottomB64) {
+    function renderCarved3DMeshes(meshB64) {
       if (topMeshGroup) scene.remove(topMeshGroup);
       if (bottomMeshGroup) scene.remove(bottomMeshGroup);
-
+      if (carvedMeshGroup) scene.remove(carvedMeshGroup);
       const loader = new THREE.STLLoader();
-
-      // Top Mesh
-      const topBuffer = base64ToArrayBuffer(topB64);
-      const topGeom = loader.parse(topBuffer);
-      const topMat = new THREE.MeshPhongMaterial({ color: 0xff5722, specular: 0x111111, shininess: 80, flatShading: true, wireframe: isWireframe });
-      const topMesh = new THREE.Mesh(topGeom, topMat);
-      topMeshGroup = new THREE.Group();
-      topMeshGroup.add(topMesh);
-      scene.add(topMeshGroup);
-
-      // Bottom Mesh
-      const bottomBuffer = base64ToArrayBuffer(bottomB64);
-      const bottomGeom = loader.parse(bottomBuffer);
-      const bottomMat = new THREE.MeshPhongMaterial({ color: 0x10b981, specular: 0x111111, shininess: 80, flatShading: true, wireframe: isWireframe });
-      const bottomMesh = new THREE.Mesh(bottomGeom, bottomMat);
-      bottomMeshGroup = new THREE.Group();
-      bottomMeshGroup.add(bottomMesh);
-      scene.add(bottomMeshGroup);
-
+      const buffer = base64ToArrayBuffer(meshB64);
+      const geom = loader.parse(buffer);
+      const mat = new THREE.MeshPhongMaterial({
+        color: 0x10b981,
+        specular: 0x111111,
+        shininess: 80,
+        flatShading: true,
+        wireframe: isWireframe
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      carvedMeshGroup = new THREE.Group();
+      carvedMeshGroup.add(mesh);
+      scene.add(carvedMeshGroup);
       resetCamera();
+    }
+
+    function toggleCarvedViewMode() {
+      viewModeIsSideBySide = !viewModeIsSideBySide;
+      const btn = document.getElementById('btnToggleView');
+      if (viewModeIsSideBySide) {
+        btn.innerText = '📦 Side-by-Side View';
+        if (combinedB64) renderCarved3DMeshes(combinedB64);
+      } else {
+        btn.innerText = '🧩 Assembled View';
+        if (topB64) renderCarved3DMeshes(topB64);
+      }
+    }
+
+    function exportGeometryToSTLBlob(geometry) {
+      const geom = geometry.clone();
+      geom.computeVertexNormals();
+      const pos = geom.attributes.position;
+      const norm = geom.attributes.normal;
+      const count = pos.count / 3;
+      const bufferLength = 84 + count * 50;
+      const buffer = new ArrayBuffer(bufferLength);
+      const dataView = new DataView(buffer);
+      for (let i = 0; i < 80; i++) dataView.setUint8(i, 32);
+      dataView.setUint32(80, count, true);
+      let offset = 84;
+      for (let i = 0; i < count; i++) {
+        const i3 = i * 3;
+        dataView.setFloat32(offset, norm.getX(i3), true);
+        dataView.setFloat32(offset + 4, norm.getY(i3), true);
+        dataView.setFloat32(offset + 8, norm.getZ(i3), true);
+        offset += 12;
+        for (let j = 0; j < 3; j++) {
+          const idx = i3 + j;
+          dataView.setFloat32(offset, pos.getX(idx), true);
+          dataView.setFloat32(offset + 4, pos.getY(idx), true);
+          dataView.setFloat32(offset + 8, pos.getZ(idx), true);
+          offset += 12;
+        }
+        dataView.setUint16(offset, 0, true);
+        offset += 2;
+      }
+      return new Blob([buffer], { type: 'application/octet-stream' });
     }
 
     function base64ToArrayBuffer(base64) {
@@ -472,21 +580,7 @@
       link.click();
     }
 
-    function downloadCombinedStl() {
-      if (!combinedB64) return;
-      const link = document.createElement('a');
-      link.href = 'data:application/octet-stream;base64,' + combinedB64;
-      link.download = 'grinder_both_parts_side_by_side.stl';
-      link.click();
-    }
-
-    function downloadOriginalStl() {
-      if (!originalB64) return;
-      const link = document.createElement('a');
-      link.href = 'data:application/octet-stream;base64,' + originalB64;
-      link.download = (selectedFile ? selectedFile.name : 'original_model.stl');
-      link.click();
-    }
+    window.onload = init3D;
   </script>
 </body>
 </html>

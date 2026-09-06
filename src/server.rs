@@ -10,8 +10,6 @@ use axum::{
     Json, Router,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
-use ferrox_app::FerroxApp;
-use ferrox_transports::http::HttpTransport;
 use serde_json::{json, Value};
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -27,10 +25,11 @@ pub async fn start_grinder_server(port: u16) -> Result<(), Box<dyn std::error::E
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // Support up to 100MB STL files
         .layer(CorsLayer::permissive());
 
-    let transport = HttpTransport::new(router, port);
+    let addr = format!("127.0.0.1:{}", port);
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    let url = format!("http://{}", addr);
 
-    let url = format!("http://localhost:{}", port);
-    println!("⚡ Launching Ferrox Framework HTTP Transport for Single-Layer Grinder on {}...", url);
+    println!("⚡ Launching Ferrox Framework HTTP Transport (Localhost Loopback Only) on {}...", url);
     println!("🌐 Interactive Web UI live at: {}", url);
 
     // Auto-open default browser for standard users
@@ -39,10 +38,7 @@ pub async fn start_grinder_server(port: u16) -> Result<(), Box<dyn std::error::E
         let _ = webbrowser::open(&url);
     });
 
-    FerroxApp::new()
-        .add_transport(transport)
-        .start()
-        .await?;
+    axum::serve(listener, router).await?;
 
     Ok(())
 }
