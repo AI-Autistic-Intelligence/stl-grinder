@@ -118,6 +118,12 @@
         </div>
       </div>
 
+      <div class="checkbox-group">
+        <label for="recessTeeth">🔲 Recess Teeth (Incavati per stampa 3D)</label>
+        <input type="checkbox" id="recessTeeth" checked style="width:20px; height:20px; accent-color:var(--accent);">
+      </div>
+      <p style="font-size:0.78rem; color:var(--success); margin-top:0.3rem;">✓ Keeps teeth 100% inside cavity so split face rests flat on 3D printer bed without external supports</p>
+
       <button class="btn" onclick="carveGrinderModel()">⚡ Carve 3D Grinder Model</button>
     </div>
 
@@ -157,9 +163,11 @@
         </div>
       </div>
 
-      <div class="downloads-container" id="downloadsContainer" style="display:none;">
-        <button class="btn btn-download" onclick="downloadTopStl()">📥 Download Top Part STL</button>
-        <button class="btn btn-download" onclick="downloadBottomStl()">📥 Download Bottom Part STL</button>
+      <div class="downloads-container" id="downloadsContainer" style="display:none; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+        <button class="btn btn-download" onclick="downloadTopStl()">📥 Top Part STL</button>
+        <button class="btn btn-download" onclick="downloadBottomStl()">📥 Bottom Part STL</button>
+        <button class="btn btn-download" style="background:#8b5cf6;" onclick="downloadCombinedStl()">📦 Both Parts (Side-by-Side)</button>
+        <button class="btn btn-download" style="background:#3b82f6;" onclick="downloadOriginalStl()">📄 Original File As-Is</button>
       </div>
     </div>
   </div>
@@ -173,6 +181,8 @@
     let analysisData = null;
     let topB64 = null;
     let bottomB64 = null;
+    let combinedB64 = null;
+    let originalB64 = null;
 
     // Three.js 3D Interactive Viewport
     let scene, camera, renderer, controls;
@@ -381,6 +391,7 @@
       formData.append('magnet_enabled', document.getElementById('magnetEnabled').checked.toString());
       formData.append('magnet_diameter', document.getElementById('magnetDiameter').value);
       formData.append('magnet_depth', document.getElementById('magnetDepth').value);
+      formData.append('recess_teeth', document.getElementById('recessTeeth').checked.toString());
 
       document.getElementById('statusBadge').innerText = '⚡ Carving 3D Mesh in Rust...';
 
@@ -391,6 +402,8 @@
         if (data.success) {
           topB64 = data.top_stl_b64;
           bottomB64 = data.bottom_stl_b64;
+          combinedB64 = data.combined_stl_b64;
+          originalB64 = data.original_stl_b64;
 
           renderCarved3DMeshes(topB64, bottomB64);
 
@@ -456,6 +469,22 @@
       const link = document.createElement('a');
       link.href = 'data:application/octet-stream;base64,' + bottomB64;
       link.download = 'grinder_bottom.stl';
+      link.click();
+    }
+
+    function downloadCombinedStl() {
+      if (!combinedB64) return;
+      const link = document.createElement('a');
+      link.href = 'data:application/octet-stream;base64,' + combinedB64;
+      link.download = 'grinder_both_parts_side_by_side.stl';
+      link.click();
+    }
+
+    function downloadOriginalStl() {
+      if (!originalB64) return;
+      const link = document.createElement('a');
+      link.href = 'data:application/octet-stream;base64,' + originalB64;
+      link.download = (selectedFile ? selectedFile.name : 'original_model.stl');
       link.click();
     }
   </script>

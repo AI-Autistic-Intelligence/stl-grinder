@@ -106,6 +106,8 @@ async fn carve_grinder_3d(mut multipart: Multipart) -> Json<Value> {
     let mut magnet_enabled: bool = true;
     let mut magnet_diameter: f32 = 3.1;
     let mut magnet_depth: f32 = 2.1;
+    let mut recess_teeth: bool = true;
+    let mut recess_clearance: f32 = 0.5;
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or_default().to_string();
@@ -137,6 +139,14 @@ async fn carve_grinder_3d(mut multipart: Multipart) -> Json<Value> {
             if let Ok(text) = field.text().await {
                 magnet_depth = text.parse().unwrap_or(2.1);
             }
+        } else if name == "recess_teeth" {
+            if let Ok(text) = field.text().await {
+                recess_teeth = text.parse().unwrap_or(true);
+            }
+        } else if name == "recess_clearance" {
+            if let Ok(text) = field.text().await {
+                recess_clearance = text.parse().unwrap_or(0.5);
+            }
         } else if name == "file" || field.file_name().unwrap_or_default().ends_with(".stl") {
             if let Ok(bytes) = field.bytes().await {
                 stl_bytes = Some(bytes.to_vec());
@@ -161,22 +171,29 @@ async fn carve_grinder_3d(mut multipart: Multipart) -> Json<Value> {
                         magnet_diameter_mm: magnet_diameter,
                         magnet_depth_mm: magnet_depth,
                         teeth_rings_count: 4,
+                        recess_teeth,
+                        teeth_recess_clearance_mm: recess_clearance,
                     };
 
                     let carved = MeshCarver::carve_grinder_model(&mesh, &bbox, &config);
 
-                    // Generate Top & Bottom STL bytes
+                    // Generate Top, Bottom, Combined STL bytes
                     let top_temp = NamedTempFile::new().unwrap();
                     let bottom_temp = NamedTempFile::new().unwrap();
+                    let combined_temp = NamedTempFile::new().unwrap();
 
                     let _ = Exporter::export_indexed_mesh_stl(&carved.top_mesh, top_temp.path());
                     let _ = Exporter::export_indexed_mesh_stl(&carved.bottom_mesh, bottom_temp.path());
+                    let _ = Exporter::export_indexed_mesh_stl(&carved.combined_mesh, combined_temp.path());
 
                     let top_bytes = std::fs::read(top_temp.path()).unwrap_or_default();
                     let bottom_bytes = std::fs::read(bottom_temp.path()).unwrap_or_default();
+                    let combined_bytes = std::fs::read(combined_temp.path()).unwrap_or_default();
 
                     let top_b64 = BASE64.encode(&top_bytes);
                     let bottom_b64 = BASE64.encode(&bottom_bytes);
+                    let combined_b64 = BASE64.encode(&combined_bytes);
+                    let original_b64 = BASE64.encode(&bytes);
 
                     return Json(json!({
                         "success": true,
@@ -184,6 +201,8 @@ async fn carve_grinder_3d(mut multipart: Multipart) -> Json<Value> {
                         "config": config,
                         "top_stl_b64": top_b64,
                         "bottom_stl_b64": bottom_b64,
+                        "combined_stl_b64": combined_b64,
+                        "original_stl_b64": original_b64,
                         "top_triangles": carved.top_triangle_count,
                         "bottom_triangles": carved.bottom_triangle_count
                     }));

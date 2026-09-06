@@ -7,6 +7,7 @@ use std::f32::consts::PI;
 pub struct CarvedGrinderModel {
     pub top_mesh: IndexedMesh,
     pub bottom_mesh: IndexedMesh,
+    pub combined_mesh: IndexedMesh,
     pub top_triangle_count: usize,
     pub bottom_triangle_count: usize,
 }
@@ -29,7 +30,7 @@ impl MeshCarver {
         let bottom_chamber_floor_z = z_split - half_height;
 
         // 1. Build Top Piece
-        let top_mesh = Self::carve_piece(
+        let mut top_mesh = Self::carve_piece(
             mesh,
             center_x,
             center_y,
@@ -42,7 +43,7 @@ impl MeshCarver {
         );
 
         // 2. Build Bottom Piece
-        let bottom_mesh = Self::carve_piece(
+        let mut bottom_mesh = Self::carve_piece(
             mesh,
             center_x,
             center_y,
@@ -57,9 +58,69 @@ impl MeshCarver {
         let top_count = top_mesh.faces.len();
         let bottom_count = bottom_mesh.faces.len();
 
+        // 3. Build Combined Non-Overlapping Side-by-Side Mesh (Centered around origin at Z=0)
+        let offset_x = config.chamber_radius_mm + 10.0;
+        let mut combined_vertices = Vec::new();
+        let mut combined_faces = Vec::new();
+
+        // Add Top Mesh (shifted to -offset_x, split face at Z=0)
+        let top_v_offset = combined_vertices.len();
+        for v in &top_mesh.vertices {
+            combined_vertices.push(Vector::new([
+                v[0] - center_x - offset_x,
+                v[1] - center_y,
+                v[2] - z_split,
+            ]));
+        }
+        for f in &top_mesh.faces {
+            combined_faces.push(IndexedTriangle {
+                normal: f.normal,
+                vertices: [
+                    f.vertices[0] + top_v_offset,
+                    f.vertices[1] + top_v_offset,
+                    f.vertices[2] + top_v_offset,
+                ],
+            });
+        }
+
+        // Add Bottom Mesh (shifted to +offset_x, flipped so split face sits flat at Z=0)
+        let bottom_v_offset = combined_vertices.len();
+        for v in &bottom_mesh.vertices {
+            combined_vertices.push(Vector::new([
+                v[0] - center_x + offset_x,
+                v[1] - center_y,
+                z_split - v[2],
+            ]));
+        }
+        for f in &bottom_mesh.faces {
+            combined_faces.push(IndexedTriangle {
+                normal: Vector::new([f.normal[0], f.normal[1], -f.normal[2]]),
+                vertices: [
+                    f.vertices[0] + bottom_v_offset,
+                    f.vertices[2] + bottom_v_offset, // Inverted winding for flipped normal
+                    f.vertices[1] + bottom_v_offset,
+                ],
+            });
+        }
+
+        let combined_mesh = IndexedMesh {
+            vertices: combined_vertices,
+            faces: combined_faces,
+        };
+
+        // Center individual top and bottom meshes around origin (0,0) in XY
+        for v in &mut top_mesh.vertices {
+            *v = Vector::new([v[0] - center_x, v[1] - center_y, v[2]]);
+        }
+
+        for v in &mut bottom_mesh.vertices {
+            *v = Vector::new([v[0] - center_x, v[1] - center_y, v[2]]);
+        }
+
         CarvedGrinderModel {
             top_mesh,
             bottom_mesh,
+            combined_mesh,
             top_triangle_count: top_count,
             bottom_triangle_count: bottom_count,
         }
@@ -144,12 +205,19 @@ impl MeshCarver {
         }
 
         // 3. Generate GIZEH Teeth & Central Magnet Hub on the Floor
+        let half_height = chamber_height / 2.0;
+        let effective_teeth_h = if config.recess_teeth {
+            (half_height - config.teeth_recess_clearance_mm).max(1.0)
+        } else {
+            half_height * 0.95
+        };
+
         TeethGenerator::generate_piece_teeth(
             cx,
             cy,
             floor_z,
             radius,
-            chamber_height * 0.7,
+            effective_teeth_h,
             is_top,
             config.magnet_enabled,
             config.magnet_diameter_mm,

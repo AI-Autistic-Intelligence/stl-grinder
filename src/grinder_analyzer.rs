@@ -13,6 +13,8 @@ pub struct GrinderChamberConfig {
     pub magnet_diameter_mm: f32,
     pub magnet_depth_mm: f32,
     pub teeth_rings_count: usize,
+    pub recess_teeth: bool,
+    pub teeth_recess_clearance_mm: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,6 +87,8 @@ impl MeshAnalyzer {
             magnet_diameter_mm: 3.1, // 3mm + 0.1mm tolerance
             magnet_depth_mm: 2.1,    // 2mm + 0.1mm tolerance
             teeth_rings_count: 3,
+            recess_teeth: true,
+            teeth_recess_clearance_mm: 0.5,
         };
 
         MeshAnalysis {
