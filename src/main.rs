@@ -23,7 +23,7 @@ use std::path::PathBuf;
 #[command(
     name = "stl-grinder",
     author = "AI-Autistic-Intelligence <info@ferrox-rust.dev>",
-    version = "0.2.2",
+    version = env!("CARGO_PKG_VERSION"),
     about = "⚙️ Ultra-fast 3D STL Grinder Carver, GIZEH Teeth Generator & Slicer powered by Ferrox Framework",
     long_about = None
 )]
@@ -69,7 +69,7 @@ enum Commands {
     /// Start a Ferrox Framework HTTP API server and open interactive Web UI in browser
     Serve {
         /// HTTP port to listen on
-        #[arg(short, long, default_value = "3000")]
+        #[arg(short, long, default_value = "8080")]
         port: u16,
     },
 }
@@ -79,7 +79,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     println!("{}", "============================================================".bright_blue());
-    println!("{}", "⚙️  Ferrox Framework - 3D STL Grinder Carver v0.2.2".bold().cyan());
+    println!("{}", format!("⚙️  Ferrox Framework - 3D STL Grinder Carver v{}", env!("CARGO_PKG_VERSION")).bold().cyan());
     println!("{}", "============================================================".bright_blue());
 
     match &cli.command {
@@ -149,7 +149,7 @@ async fn main() -> Result<()> {
         None => {
             // Default when user double-clicks stl-grinder.exe!
             println!("⚡ Double-clicked! Starting Ferrox Web UI & opening browser...");
-            start_grinder_server(3000).await.map_err(|e| anyhow::anyhow!("{}", e))?;
+            start_grinder_server(8080).await.map_err(|e| anyhow::anyhow!("{}", e))?;
         }
     }
 

@@ -72,7 +72,10 @@
       <div style="background:rgba(255,255,255,0.03); padding:0.8rem; border-radius:10px; margin-top:1rem; border:1px solid var(--border);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
           <span style="font-weight:600; font-size:0.85rem;">🔄 3D Orientation & Alignment</span>
-          <button class="vp-btn" style="padding:2px 8px; font-size:0.75rem;" onclick="resetModelRotation()">🎯 Lay Flat</button>
+          <div style="display:flex; gap:4px;">
+            <button class="vp-btn" style="padding:2px 8px; font-size:0.75rem;" onclick="resetModelRotation()">🎯 Lay Flat</button>
+            <button class="vp-btn" style="padding:2px 8px; font-size:0.75rem; background:#10b981;" onclick="findOptimalZSplitAndDiameter()">🔍 Max Chamber</button>
+          </div>
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
           <div>
@@ -100,10 +103,10 @@
 
       <div class="control-group">
         <label>
-          <span>⭕ Chamber Diameter (Max <span id="maxDiameterLabel">--</span>)</span>
+          <span>⭕ Grinder Chamber Diameter</span>
           <span id="diamVal">40.0 mm</span>
         </label>
-        <input type="range" id="chamberDiameter" min="15.0" max="100.0" step="1.0" value="40.0" oninput="updateDiam(this.value)">
+        <input type="range" id="chamberDiameter" min="5.0" max="150.0" step="1.0" value="40.0" oninput="updateDiam(this.value)">
       </div>
 
       <div class="control-group">
@@ -294,23 +297,17 @@
         const loader = new THREE.STLLoader();
         originalGeometry = loader.parse(e.target.result);
 
-        originalGeometry.computeBoundingBox();
-        const box = originalGeometry.boundingBox;
-        const cx = (box.max.x + box.min.x) / 2.0;
-        const cy = (box.max.y + box.min.y) / 2.0;
-        const minZ = box.min.z;
-        originalGeometry.translate(-cx, -cy, -minZ);
-        originalGeometry.computeBoundingBox();
-
         if (topMeshGroup) scene.remove(topMeshGroup);
         if (bottomMeshGroup) scene.remove(bottomMeshGroup);
         if (carvedMeshGroup) scene.remove(carvedMeshGroup);
 
         const material = new THREE.MeshPhongMaterial({
           color: 0x38bdf8,
-          specular: 0x111111,
-          shininess: 100,
+          specular: 0x222222,
+          shininess: 60,
           flatShading: true,
+          transparent: true,
+          opacity: 0.82,
           wireframe: isWireframe
         });
 
@@ -322,7 +319,7 @@
         document.getElementById('placeholderText').style.display = 'none';
         resetCamera();
         createSliceOverlay();
-        updateSliceOverlay();
+        updateModelRotation();
       };
       reader.readAsArrayBuffer(file);
     }
@@ -336,9 +333,10 @@
       const cylMat = new THREE.MeshBasicMaterial({
         color: 0x00f2fe,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.4,
         wireframe: true,
-        depthWrite: false
+        depthWrite: true,
+        depthTest: true
       });
       chamberCylinderMesh = new THREE.Mesh(cylGeom, cylMat);
       sliceOverlayGroup.add(chamberCylinderMesh);
@@ -347,9 +345,10 @@
       const planeMat = new THREE.MeshBasicMaterial({
         color: 0xff5722,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.45,
         side: THREE.DoubleSide,
-        depthWrite: false
+        depthWrite: true,
+        depthTest: true
       });
       zSplitPlaneMesh = new THREE.Mesh(planeGeom, planeMat);
       sliceOverlayGroup.add(zSplitPlaneMesh);
@@ -358,31 +357,171 @@
     }
 
     function updateSliceOverlay() {
-      if (!sliceOverlayGroup || !analysisData) return;
+      if (!sliceOverlayGroup || !originalMesh) return;
 
       const diam = parseFloat(document.getElementById('chamberDiameter').value) || 40;
       const depth = parseFloat(document.getElementById('chamberDepth').value) || 10;
       const r = diam / 2.0;
 
+      // Re-create geometries with exact millimeter dimensions to eliminate non-uniform scaling distortion
+      if (chamberCylinderMesh) sliceOverlayGroup.remove(chamberCylinderMesh);
+      if (zSplitPlaneMesh) sliceOverlayGroup.remove(zSplitPlaneMesh);
+
+      const cylGeom = new THREE.CylinderGeometry(r, r, depth, 64);
+      cylGeom.rotateX(Math.PI / 2);
+      const cylMat = new THREE.MeshBasicMaterial({
+        color: 0x00f2fe,
+        transparent: true,
+        opacity: 0.4,
+        wireframe: true,
+        depthWrite: true,
+        depthTest: true
+      });
+      chamberCylinderMesh = new THREE.Mesh(cylGeom, cylMat);
+
+      const planeGeom = new THREE.CircleGeometry(r + 15, 64);
+      const planeMat = new THREE.MeshBasicMaterial({
+        color: 0xff5722,
+        transparent: true,
+        opacity: 0.45,
+        side: THREE.DoubleSide,
+        depthWrite: true,
+        depthTest: true
+      });
+      zSplitPlaneMesh = new THREE.Mesh(planeGeom, planeMat);
+
+      sliceOverlayGroup.add(chamberCylinderMesh);
+      sliceOverlayGroup.add(zSplitPlaneMesh);
+
+      originalMesh.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(originalMesh);
+      const modelHeight = box.max.z - box.min.z;
+
       const v = parseFloat(document.getElementById('zSplit').value) || 50;
-      const zSplitVal = analysisData.min_z + analysisData.height_mm * (v / 100.0);
-      const relativeZSplit = zSplitVal - analysisData.min_z;
+      const relativeZSplit = box.min.z + modelHeight * (v / 100.0);
 
-      chamberCylinderMesh.scale.set(r / 20.0, depth / 10.0, r / 20.0);
+      document.getElementById('zSplitVal').innerText = relativeZSplit.toFixed(1) + ' mm';
+      document.getElementById('statSplitZ').innerText = relativeZSplit.toFixed(1) + ' mm';
+
       chamberCylinderMesh.position.set(0, 0, relativeZSplit);
-
-      zSplitPlaneMesh.scale.set((r + 10) / 25.0, (r + 10) / 25.0, 1.0);
       zSplitPlaneMesh.position.set(0, 0, relativeZSplit);
+    }
+
+    function findOptimalZSplitAndDiameter() {
+      if (!originalGeometry || !originalMesh) return;
+
+      originalMesh.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(originalMesh);
+      const minZ = box.min.z;
+      const maxZ = box.max.z;
+      const height = maxZ - minZ;
+      if (height <= 0) return;
+
+      const posAttr = originalGeometry.attributes.position;
+      const vertexCount = posAttr.count;
+      const matrix = originalMesh.matrixWorld;
+
+      // Transform vertices into world space
+      const worldVertices = new Float32Array(vertexCount * 3);
+      const v = new THREE.Vector3();
+
+      for (let i = 0; i < vertexCount; i++) {
+        v.fromBufferAttribute(posAttr, i);
+        v.applyMatrix4(matrix);
+        worldVertices[i * 3] = v.x;
+        worldVertices[i * 3 + 1] = v.y;
+        worldVertices[i * 3 + 2] = v.z;
+      }
+
+      const numSlices = 60;
+      const zStep = height / numSlices;
+
+      let bestZ = minZ + height * 0.5;
+      let maxInscribedRadius = 0;
+
+      const startIdx = Math.floor(numSlices * 0.15);
+      const endIdx = Math.floor(numSlices * 0.85);
+
+      for (let s = startIdx; s <= endIdx; s++) {
+        const zTarget = minZ + s * zStep;
+        let minDistSqAtZ = Infinity;
+        let count = 0;
+
+        for (let i = 0; i < vertexCount; i++) {
+          const wz = worldVertices[i * 3 + 2];
+          if (Math.abs(wz - zTarget) <= zStep * 1.2) {
+            const wx = worldVertices[i * 3];
+            const wy = worldVertices[i * 3 + 1];
+            const distSq = wx * wx + wy * wy; // Distance from (0,0) center
+            if (distSq < minDistSqAtZ) {
+              minDistSqAtZ = distSq;
+            }
+            count++;
+          }
+        }
+
+        if (count < 8 || minDistSqAtZ === Infinity) continue;
+
+        const radiusAtZ = Math.sqrt(minDistSqAtZ);
+        if (radiusAtZ > maxInscribedRadius) {
+          maxInscribedRadius = radiusAtZ;
+          bestZ = zTarget;
+        }
+      }
+
+      if (maxInscribedRadius <= 0) return;
+
+      const wallThickness = parseFloat(document.getElementById('wallThickness').value) || 2.0;
+      const maxSafeDiam = Math.max(10.0, (maxInscribedRadius - wallThickness) * 2.0);
+      const suggestedDiam = Math.round(maxSafeDiam * 0.9);
+
+      const diamInput = document.getElementById('chamberDiameter');
+      diamInput.max = Math.ceil(maxSafeDiam * 1.5).toString();
+      if (parseFloat(diamInput.value) > maxSafeDiam || parseFloat(diamInput.value) === 40.0) {
+        diamInput.value = Math.min(suggestedDiam, parseFloat(diamInput.max)).toString();
+      }
+      document.getElementById('diamVal').innerText = parseFloat(diamInput.value).toFixed(1) + ' mm';
+      document.getElementById('statMaxDiam').innerText = maxSafeDiam.toFixed(1) + ' mm';
+
+      const zPct = Math.round(((bestZ - minZ) / height) * 100.0);
+      const zSlider = document.getElementById('zSplit');
+      zSlider.value = Math.max(5, Math.min(95, zPct)).toString();
+
+      updateSliceOverlay();
+
+      document.getElementById('statusBadge').innerText = `🎯 Optimal Chamber Calculated: Safe Max Diam ${maxSafeDiam.toFixed(1)}mm at Z=${bestZ.toFixed(1)}mm`;
+    }
+
+    function restoreOriginalPreview() {
+      if (carvedMeshGroup && scene.children.includes(carvedMeshGroup)) {
+        scene.remove(carvedMeshGroup);
+        if (topMeshGroup) scene.add(topMeshGroup);
+        createSliceOverlay();
+        updateSliceOverlay();
+        document.getElementById('statusBadge').innerText = '✅ Preview Mode Active - Adjust settings & click "Carve 3D Grinder Model"';
+      }
     }
 
     function updateModelRotation() {
       if (!originalMesh) return;
+      restoreOriginalPreview();
+
       const rx = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotX').value) || 0);
       const ry = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotY').value) || 0);
       const rz = THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotZ').value) || 0);
 
       originalMesh.rotation.set(rx, ry, rz);
-      updateSliceOverlay();
+      originalMesh.position.set(0, 0, 0);
+      originalMesh.updateMatrixWorld(true);
+
+      const box = new THREE.Box3().setFromObject(originalMesh);
+      const cx = (box.min.x + box.max.x) / 2.0;
+      const cy = (box.min.y + box.max.y) / 2.0;
+
+      originalMesh.position.set(-cx, -cy, -box.min.z);
+      originalMesh.updateMatrixWorld(true);
+
+      findOptimalZSplitAndDiameter();
     }
 
     function resetModelRotation() {
@@ -393,51 +532,41 @@
     }
 
     function updateWall(v) {
+      restoreOriginalPreview();
       document.getElementById('wallVal').innerText = parseFloat(v).toFixed(1) + ' mm';
     }
 
     function updateDiam(v) {
+      restoreOriginalPreview();
       document.getElementById('diamVal').innerText = parseFloat(v).toFixed(1) + ' mm';
       updateSliceOverlay();
     }
 
     function updateDepth(v) {
+      restoreOriginalPreview();
       document.getElementById('depthVal').innerText = parseFloat(v).toFixed(1) + ' mm';
       updateSliceOverlay();
     }
 
     function updateZSplit(v) {
-      if (analysisData) {
-        const z = analysisData.min_z + analysisData.height_mm * (v / 100.0);
-        document.getElementById('zSplitVal').innerText = z.toFixed(1) + ' mm';
-        document.getElementById('statSplitZ').innerText = z.toFixed(1) + ' mm';
-      }
+      restoreOriginalPreview();
       updateSliceOverlay();
     }
 
     async function analyzeModel() {
       if (!selectedFile) return;
+      document.getElementById('statusBadge').innerText = '🔍 Analyzing 3D Geometry via Rust Backend...';
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('wall_thickness', document.getElementById('wallThickness').value);
-      document.getElementById('statusBadge').innerText = '🔍 Analyzing geometry...';
       try {
         const res = await fetch('/api/v1/analyze', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
           analysisData = data.analysis;
-          const maxD = analysisData.max_safe_chamber_radius_mm * 2.0;
-          document.getElementById('maxDiameterLabel').innerText = maxD.toFixed(1) + ' mm';
-          document.getElementById('statMaxDiam').innerText = maxD.toFixed(1) + ' mm';
-          const zSlider = document.getElementById('zSplit');
-          const zPct = ((analysisData.optimal_z_split_mm - analysisData.min_z) / analysisData.height_mm) * 100.0;
-          zSlider.value = zPct.toFixed(0);
-          updateZSplit(zSlider.value);
-          document.getElementById('statusBadge').innerText = '✅ Section Calculated (3D Real-time Visualizer Active)';
         }
-      } catch (err) {
-        document.getElementById('statusBadge').innerText = '❌ Error analyzing file';
-      }
+      } catch (err) {}
+      findOptimalZSplitAndDiameter();
     }
 
     async function carveGrinderModel() {
@@ -446,9 +575,10 @@
         return;
       }
       let fileToSend = selectedFile;
-      if (originalMesh && (originalMesh.rotation.x !== 0 || originalMesh.rotation.y !== 0 || originalMesh.rotation.z !== 0)) {
+      if (originalMesh) {
+        originalMesh.updateMatrixWorld(true);
         const rotatedGeom = originalGeometry.clone();
-        rotatedGeom.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(originalMesh.rotation));
+        rotatedGeom.applyMatrix4(originalMesh.matrixWorld);
         rotatedGeom.computeBoundingBox();
         const minZ = rotatedGeom.boundingBox.min.z;
         rotatedGeom.translate(0, 0, -minZ);
@@ -457,11 +587,13 @@
       }
       const formData = new FormData();
       formData.append('file', fileToSend);
-      if (analysisData) {
-        const v = document.getElementById('zSplit').value;
-        const z = analysisData.min_z + analysisData.height_mm * (v / 100.0);
-        formData.append('z_split', z.toString());
-      }
+      
+      originalMesh.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(originalMesh);
+      const modelHeight = box.max.z - box.min.z;
+      const v = parseFloat(document.getElementById('zSplit').value) || 50;
+      const zSplitVal = modelHeight * (v / 100.0);
+      formData.append('z_split', zSplitVal.toString());
       formData.append('chamber_radius', (document.getElementById('chamberDiameter').value / 2.0).toString());
       formData.append('chamber_height', document.getElementById('chamberDepth').value);
       formData.append('wall_thickness', document.getElementById('wallThickness').value);
@@ -478,6 +610,7 @@
           bottomB64 = data.bottom_stl_b64;
           combinedB64 = data.combined_stl_b64;
           originalB64 = data.original_stl_b64;
+          if (topMeshGroup) scene.remove(topMeshGroup);
           if (sliceOverlayGroup) scene.remove(sliceOverlayGroup);
           renderCarved3DMeshes(combinedB64);
           document.getElementById('statTopFaces').innerText = data.top_triangles;

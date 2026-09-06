@@ -15,7 +15,7 @@ use std::io::Write;
 use tempfile::NamedTempFile;
 use tower_http::cors::CorsLayer;
 
-pub async fn start_grinder_server(port: u16) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn start_grinder_server(preferred_port: u16) -> Result<(), Box<dyn std::error::Error>> {
     let router = Router::new()
         .route("/", get(serve_web_ui))
         .route("/api/v1/health", get(health_check))
@@ -25,22 +25,106 @@ pub async fn start_grinder_server(port: u16) -> Result<(), Box<dyn std::error::E
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // Support up to 100MB STL files
         .layer(CorsLayer::permissive());
 
-    let addr = format!("127.0.0.1:{}", port);
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-    let url = format!("http://{}", addr);
+    let mut ports_to_try = vec![preferred_port, 8080, 8081, 8082, 8083, 8084, 8085, 3000];
+    ports_to_try.dedup();
 
+    let mut listener = None;
+    let mut bound_port = 0;
+
+    for &port in &ports_to_try {
+        let addr = format!("127.0.0.1:{}", port);
+        match tokio::net::TcpListener::bind(&addr).await {
+            Ok(l) => {
+                listener = Some(l);
+                bound_port = port;
+                break;
+            }
+            Err(_) => {
+                // If port is occupied, check if a server is active on it
+                if let Ok(socket_addr) = addr.parse::<std::net::SocketAddr>() {
+                    if std::net::TcpStream::connect_timeout(&socket_addr, std::time::Duration::from_millis(200)).is_ok() {
+                        println!("⚡ Ferrox Web UI is already active on http://127.0.0.1:{}", port);
+                        open_app_window(port);
+                        return Ok(());
+                    }
+                }
+            }
+        }
+    }
+
+    let listener = match listener {
+        Some(l) => l,
+        None => return Err("Could not bind to any HTTP port in range 8080-8085".into()),
+    };
+
+    let url = format!("http://127.0.0.1:{}", bound_port);
     println!("⚡ Launching Ferrox Framework HTTP Transport (Localhost Loopback Only) on {}...", url);
     println!("🌐 Interactive Web UI live at: {}", url);
 
-    // Auto-open default browser for standard users
-    tokio::spawn(async move {
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        let _ = webbrowser::open(&url);
-    });
+    open_app_window(bound_port);
 
     axum::serve(listener, router).await?;
 
     Ok(())
+}
+
+fn find_standalone_browser() -> Option<std::path::PathBuf> {
+    let candidates = [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    ];
+
+    for path in &candidates {
+        let p = std::path::PathBuf::from(path);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        let local_candidates = [
+            format!(r"{}\Google\Chrome\Application\chrome.exe", local_app_data),
+            format!(r"{}\Microsoft\Edge\Application\msedge.exe", local_app_data),
+        ];
+        for path in &local_candidates {
+            let p = std::path::PathBuf::from(path);
+            if p.exists() {
+                return Some(p);
+            }
+        }
+    }
+
+    if let Ok(entries) = std::fs::read_dir(r"C:\Program Files (x86)\Microsoft\EdgeCore") {
+        for entry in entries.flatten() {
+            let exe = entry.path().join("msedge.exe");
+            if exe.exists() {
+                return Some(exe);
+            }
+        }
+    }
+
+    None
+}
+
+fn open_app_window(port: u16) {
+    let url = format!("http://127.0.0.1:{}", port);
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        
+        let app_arg = format!("--app={}", url);
+        
+        if let Some(browser_path) = find_standalone_browser() {
+            println!("🚀 Launching Standalone App Window mode via: {:?}", browser_path);
+            let _ = std::process::Command::new(browser_path)
+                .arg(&app_arg)
+                .arg("--name=3D STL Grinder Carver")
+                .spawn();
+        } else {
+            let _ = webbrowser::open(&url);
+        }
+    });
 }
 
 async fn serve_web_ui() -> Html<&'static str> {

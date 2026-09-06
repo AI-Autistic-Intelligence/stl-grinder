@@ -43,11 +43,10 @@ impl MeshAnalyzer {
         let mut best_z = bbox.min_z + (bbox.height() * 0.5);
         let mut max_inscribed_r = 0.0f32;
 
-        // Scan Z slices to find the largest horizontal inscribed circle
-        for i in 1..num_slices {
+        // Scan Z slices to find the largest horizontal inscribed circle (minimum distance to outer surface)
+        for i in 2..(num_slices - 2) {
             let z_plane = bbox.min_z + (i as f32 * z_step);
 
-            // Find minimum distance from center (cx, cy) to any vertex within a Z-band around z_plane
             let mut min_r_at_z = f32::MAX;
             let mut count = 0;
 
@@ -63,14 +62,14 @@ impl MeshAnalyzer {
                 }
             }
 
-            if count > 5 && min_r_at_z != f32::MAX && min_r_at_z > max_inscribed_r {
+            if count > 8 && min_r_at_z != f32::MAX && min_r_at_z > max_inscribed_r {
                 max_inscribed_r = min_r_at_z;
                 best_z = z_plane;
             }
         }
 
         // Fallback if mesh has uniform bounding box
-        if max_inscribed_r <= 0.0 {
+        if max_inscribed_r <= 0.0 || max_inscribed_r == f32::MAX {
             max_inscribed_r = (bbox.width().min(bbox.depth()) / 2.0) * 0.9;
         }
 

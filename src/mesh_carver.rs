@@ -29,6 +29,12 @@ impl MeshCarver {
         let top_chamber_floor_z = z_split + half_height;
         let bottom_chamber_floor_z = z_split - half_height;
 
+        let safe_radius = if config.max_allowed_radius_mm > 0.0 {
+            config.chamber_radius_mm.min(config.max_allowed_radius_mm)
+        } else {
+            config.chamber_radius_mm
+        };
+
         // 1. Build Top Piece
         let mut top_mesh = Self::carve_piece(
             mesh,
@@ -36,7 +42,7 @@ impl MeshCarver {
             center_y,
             z_split,
             top_chamber_floor_z,
-            config.chamber_radius_mm,
+            safe_radius,
             config.chamber_height_mm,
             true, // Top Piece
             config,
@@ -49,7 +55,7 @@ impl MeshCarver {
             center_y,
             z_split,
             bottom_chamber_floor_z,
-            config.chamber_radius_mm,
+            safe_radius,
             config.chamber_height_mm,
             false, // Bottom Piece
             config,
