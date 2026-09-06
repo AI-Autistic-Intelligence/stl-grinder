@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>⚙️ 3D STL Grinder Carver - Powered by Ferrox Framework</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
   <style>
     :root {
       --bg-color: #0f172a;
@@ -22,7 +24,7 @@
     header h1 { font-size: 2.2rem; margin-bottom: 0.3rem; }
     header p { color: var(--text-muted); font-size: 1.05rem; }
     .badge { background: linear-gradient(135deg, #ff5722, #ff9800); color: #fff; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: bold; font-size: 0.85rem; }
-    .container { display: grid; grid-template-columns: 420px 1fr; gap: 1.5rem; width: 100%; max-width: 1250px; }
+    .container { display: grid; grid-template-columns: 420px 1fr; gap: 1.5rem; width: 100%; max-width: 1300px; }
     @media (max-width: 950px) { .container { grid-template-columns: 1fr; } }
     .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
     .drop-zone { border: 2px dashed var(--accent); border-radius: 12px; padding: 1.8rem 1rem; text-align: center; cursor: pointer; transition: 0.2s ease; background: rgba(255,87,34,0.03); }
@@ -37,8 +39,12 @@
     .btn:hover { background: var(--accent-hover); }
     .btn-download { background: var(--success); margin-top: 0.6rem; }
     .btn-download:hover { background: #059669; }
-    .preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 420px; background: #090d16; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden; }
-    #canvas3d { width: 100%; height: 100%; display: block; }
+    .preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 480px; background: #090d16; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+    #canvasContainer { width: 100%; height: 100%; cursor: grab; }
+    #canvasContainer:active { cursor: grabbing; }
+    .viewport-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 10; }
+    .vp-btn { background: rgba(30,41,59,0.85); color: #fff; border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; backdrop-filter: blur(4px); }
+    .vp-btn:hover { background: var(--accent); }
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin-top: 1rem; font-size: 0.85rem; }
     .stat-item { background: rgba(255,255,255,0.04); padding: 0.6rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); text-align: center; }
     .stat-item span { display: block; color: var(--text-muted); font-size: 0.75rem; }
@@ -115,16 +121,21 @@
       <button class="btn" onclick="carveGrinderModel()">⚡ Carve 3D Grinder Model</button>
     </div>
 
-    <!-- Right Column: 3D Preview & Downloads -->
+    <!-- Right Column: 3D Viewport & Controls -->
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
-        <h3>🖼️ 3D Viewport (Interlocking GIZEH Teeth)</h3>
-        <span id="statusBadge" style="color:var(--text-muted); font-size:0.85rem;">Ready</span>
+        <h3>🖼️ Interactive 3D Viewport (360° Orbit)</h3>
+        <span id="statusBadge" style="color:var(--text-muted); font-size:0.85rem;">Drag Mouse to Rotate / Scroll to Zoom</span>
       </div>
 
       <div class="preview-box">
-        <div id="canvasContainer" style="width:100%; height:100%;"></div>
-        <p id="placeholderText" style="position:absolute; color:var(--text-muted);">Upload a 3D STL model to auto-detect optimal grinder chamber</p>
+        <div class="viewport-controls">
+          <button class="vp-btn" onclick="resetCamera()">🎯 Reset Camera</button>
+          <button class="vp-btn" onclick="toggleExplodedView()">💥 Toggle Exploded View</button>
+          <button class="vp-btn" onclick="toggleWireframe()">🕸️ Wireframe</button>
+        </div>
+        <div id="canvasContainer"></div>
+        <p id="placeholderText" style="position:absolute; color:var(--text-muted); pointer-events:none;">Upload a 3D STL model to inspect and rotate in 3D</p>
       </div>
 
       <div class="stats-grid" id="statsGrid">
@@ -154,7 +165,7 @@
   </div>
 
   <footer>
-    Powered by <a href="https://ferrox-rust.dev/" target="_blank">Ferrox Framework</a> & Rust | GIZEH Teeth Pattern & Magnet Pockets
+    Powered by <a href="https://ferrox-rust.dev/" target="_blank">Ferrox Framework</a> & Rust | 3D Orbit Controls Enabled
   </footer>
 
   <script>
@@ -163,18 +174,20 @@
     let topB64 = null;
     let bottomB64 = null;
 
-    // Three.js 3D Viewport Setup
-    let scene, camera, renderer, currentMeshGroup;
+    // Three.js 3D Interactive Viewport
+    let scene, camera, renderer, controls;
+    let topMeshGroup = null, bottomMeshGroup = null;
+    let isExploded = false;
+    let isWireframe = false;
 
     function init3D() {
       const container = document.getElementById('canvasContainer');
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x090d16);
 
-      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-      camera.position.set(0, -120, 100);
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 2000);
+      camera.position.set(0, -150, 100);
       camera.up.set(0, 0, 1);
-      camera.lookAt(0, 0, 0);
 
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
       scene.add(ambientLight);
@@ -183,27 +196,62 @@
       dirLight1.position.set(100, 100, 200);
       scene.add(dirLight1);
 
-      const dirLight2 = new THREE.DirectionalLight(0xff5722, 0.4);
+      const dirLight2 = new THREE.DirectionalLight(0xff5722, 0.5);
       dirLight2.position.set(-100, -100, -50);
       scene.add(dirLight2);
 
-      const gridHelper = new THREE.GridHelper(200, 20, 0xff5722, 0x334155);
+      const gridHelper = new THREE.GridHelper(300, 30, 0xff5722, 0x334155);
       gridHelper.rotation.x = Math.PI / 2;
       scene.add(gridHelper);
 
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
       container.appendChild(renderer.domElement);
 
+      // OrbitControls for 360° Mouse Rotation, Pan, Zoom
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 0, 0);
+
+      window.addEventListener('resize', onWindowResize);
       animate();
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('canvasContainer');
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
     }
 
     function animate() {
       requestAnimationFrame(animate);
-      if (currentMeshGroup) {
-        currentMeshGroup.rotation.z += 0.005;
-      }
+      controls.update();
       renderer.render(scene, camera);
+    }
+
+    function resetCamera() {
+      camera.position.set(0, -150, 100);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function toggleWireframe() {
+      isWireframe = !isWireframe;
+      scene.traverse(child => {
+        if (child.isMesh && child.material) {
+          child.material.wireframe = isWireframe;
+        }
+      });
+    }
+
+    function toggleExplodedView() {
+      isExploded = !isExploded;
+      const offset = isExploded ? 30 : 0;
+      if (topMeshGroup) topMeshGroup.position.z = offset;
+      if (bottomMeshGroup) bottomMeshGroup.position.z = -offset;
     }
 
     window.onload = init3D;
@@ -229,6 +277,7 @@
       if (e.dataTransfer.files.length) {
         selectedFile = e.dataTransfer.files[0];
         dropZone.querySelector('h3').innerText = '📄 ' + selectedFile.name;
+        loadOriginalSTLPreview(selectedFile);
         analyzeModel();
       }
     });
@@ -237,8 +286,41 @@
       if (e.target.files.length) {
         selectedFile = e.target.files[0];
         dropZone.querySelector('h3').innerText = '📄 ' + selectedFile.name;
+        loadOriginalSTLPreview(selectedFile);
         analyzeModel();
       }
+    }
+
+    function loadOriginalSTLPreview(file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const loader = new THREE.STLLoader();
+        const geometry = loader.parse(e.target.result);
+
+        if (topMeshGroup) scene.remove(topMeshGroup);
+        if (bottomMeshGroup) scene.remove(bottomMeshGroup);
+
+        geometry.computeBoundingBox();
+        const center = new THREE.Vector3();
+        geometry.boundingBox.getCenter(center);
+        geometry.center(); // Center geometry at origin
+
+        const material = new THREE.MeshPhongMaterial({
+          color: 0x38bdf8,
+          specular: 0x111111,
+          shininess: 100,
+          flatShading: true
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        topMeshGroup = new THREE.Group();
+        topMeshGroup.add(mesh);
+        scene.add(topMeshGroup);
+
+        document.getElementById('placeholderText').style.display = 'none';
+        resetCamera();
+      };
+      reader.readAsArrayBuffer(file);
     }
 
     async function analyzeModel() {
@@ -271,35 +353,11 @@
           zSlider.value = zPct.toFixed(0);
           updateZSplit(zSlider.value);
 
-          document.getElementById('statusBadge').innerText = '✅ Optimal Section Found';
-          document.getElementById('placeholderText').style.display = 'none';
-
-          render3DPreviewCylinder(maxD / 2.0, analysisData.optimal_z_split_mm);
+          document.getElementById('statusBadge').innerText = '✅ Optimal Section Found (3D Orbit Ready)';
         }
       } catch (err) {
         document.getElementById('statusBadge').innerText = '❌ Error analyzing file';
       }
-    }
-
-    function render3DPreviewCylinder(radius, zSplit) {
-      if (currentMeshGroup) scene.remove(currentMeshGroup);
-      currentMeshGroup = new THREE.Group();
-
-      const geom = new THREE.CylinderGeometry(radius, radius, 10, 32);
-      const matTop = new THREE.MeshPhongMaterial({ color: 0xff5722, transparent: true, opacity: 0.8, flatShading: true });
-      const matBottom = new THREE.MeshPhongMaterial({ color: 0x10b981, transparent: true, opacity: 0.8, flatShading: true });
-
-      const topCyl = new THREE.Mesh(geom, matTop);
-      topCyl.position.set(0, 0, 5);
-      topCyl.rotation.x = Math.PI / 2;
-
-      const bottomCyl = new THREE.Mesh(geom, matBottom);
-      bottomCyl.position.set(0, 0, -5);
-      bottomCyl.rotation.x = Math.PI / 2;
-
-      currentMeshGroup.add(topCyl);
-      currentMeshGroup.add(bottomCyl);
-      scene.add(currentMeshGroup);
     }
 
     async function carveGrinderModel() {
@@ -334,16 +392,55 @@
           topB64 = data.top_stl_b64;
           bottomB64 = data.bottom_stl_b64;
 
+          renderCarved3DMeshes(topB64, bottomB64);
+
           document.getElementById('statTopFaces').innerText = data.top_triangles;
           document.getElementById('statBottomFaces').innerText = data.bottom_triangles;
           document.getElementById('downloadsContainer').style.display = 'grid';
-          document.getElementById('statusBadge').innerText = '✨ 3D Grinder Carved Successfully!';
+          document.getElementById('statusBadge').innerText = '✨ 3D Carved Mesh Loaded! Orbit 360° with Mouse';
         } else {
           alert('Error: ' + data.error);
         }
       } catch (err) {
         alert('Server error: ' + err.message);
       }
+    }
+
+    function renderCarved3DMeshes(topB64, bottomB64) {
+      if (topMeshGroup) scene.remove(topMeshGroup);
+      if (bottomMeshGroup) scene.remove(bottomMeshGroup);
+
+      const loader = new THREE.STLLoader();
+
+      // Top Mesh
+      const topBuffer = base64ToArrayBuffer(topB64);
+      const topGeom = loader.parse(topBuffer);
+      const topMat = new THREE.MeshPhongMaterial({ color: 0xff5722, specular: 0x111111, shininess: 80, flatShading: true, wireframe: isWireframe });
+      const topMesh = new THREE.Mesh(topGeom, topMat);
+      topMeshGroup = new THREE.Group();
+      topMeshGroup.add(topMesh);
+      scene.add(topMeshGroup);
+
+      // Bottom Mesh
+      const bottomBuffer = base64ToArrayBuffer(bottomB64);
+      const bottomGeom = loader.parse(bottomBuffer);
+      const bottomMat = new THREE.MeshPhongMaterial({ color: 0x10b981, specular: 0x111111, shininess: 80, flatShading: true, wireframe: isWireframe });
+      const bottomMesh = new THREE.Mesh(bottomGeom, bottomMat);
+      bottomMeshGroup = new THREE.Group();
+      bottomMeshGroup.add(bottomMesh);
+      scene.add(bottomMeshGroup);
+
+      resetCamera();
+    }
+
+    function base64ToArrayBuffer(base64) {
+      const binaryString = window.atob(base64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes.buffer;
     }
 
     function downloadTopStl() {
