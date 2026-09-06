@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 mod exporter;
 mod grinder_analyzer;
 mod mesh_carver;
