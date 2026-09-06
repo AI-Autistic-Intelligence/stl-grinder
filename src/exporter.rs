@@ -1,6 +1,6 @@
 use crate::slicer::SingleLayerContour;
 use anyhow::Result;
-use stl_io::{Triangle, Vector};
+use stl_io::{IndexedMesh, Triangle, Vector};
 use svg::node::element::path::Data;
 use svg::node::element::Path;
 use svg::Document;
@@ -37,6 +37,23 @@ impl Exporter {
         }
 
         svg::save(output_path, &document)?;
+        Ok(())
+    }
+
+    /// Export an IndexedMesh directly to 3D STL file
+    pub fn export_indexed_mesh_stl<P: AsRef<StdPath>>(mesh: &IndexedMesh, output_path: P) -> Result<()> {
+        let mut triangles = Vec::with_capacity(mesh.faces.len());
+        for f in &mesh.faces {
+            let v0 = mesh.vertices[f.vertices[0]];
+            let v1 = mesh.vertices[f.vertices[1]];
+            let v2 = mesh.vertices[f.vertices[2]];
+            triangles.push(Triangle {
+                normal: f.normal,
+                vertices: [v0, v1, v2],
+            });
+        }
+        let mut out_file = File::create(output_path)?;
+        stl_io::write_stl(&mut out_file, triangles.iter())?;
         Ok(())
     }
 

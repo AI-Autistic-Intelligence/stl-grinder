@@ -3,121 +3,225 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚙️ Single-Layer Grinder - Powered by Ferrox Framework</title>
+  <title>⚙️ 3D STL Grinder Carver - Powered by Ferrox Framework</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     :root {
       --bg-color: #0f172a;
       --card-bg: #1e293b;
       --accent: #ff5722;
       --accent-hover: #f4511e;
+      --success: #10b981;
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --border: #334155;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text); padding: 2rem; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-    header { text-align: center; margin-bottom: 2rem; }
-    header h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
-    header p { color: var(--text-muted); font-size: 1.1rem; }
+    body { background-color: var(--bg-color); color: var(--text); padding: 1.5rem; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    header { text-align: center; margin-bottom: 1.5rem; }
+    header h1 { font-size: 2.2rem; margin-bottom: 0.3rem; }
+    header p { color: var(--text-muted); font-size: 1.05rem; }
     .badge { background: linear-gradient(135deg, #ff5722, #ff9800); color: #fff; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: bold; font-size: 0.85rem; }
-    .container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; width: 100%; max-width: 1100px; }
-    @media (max-width: 850px) { .container { grid-template-columns: 1fr; } }
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-    .drop-zone { border: 2px dashed var(--accent); border-radius: 12px; padding: 2.5rem 1rem; text-align: center; cursor: pointer; transition: 0.2s ease; background: rgba(255,87,34,0.03); }
+    .container { display: grid; grid-template-columns: 420px 1fr; gap: 1.5rem; width: 100%; max-width: 1250px; }
+    @media (max-width: 950px) { .container { grid-template-columns: 1fr; } }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .drop-zone { border: 2px dashed var(--accent); border-radius: 12px; padding: 1.8rem 1rem; text-align: center; cursor: pointer; transition: 0.2s ease; background: rgba(255,87,34,0.03); }
     .drop-zone:hover, .drop-zone.dragover { background: rgba(255,87,34,0.1); border-color: #ff9800; }
-    .drop-zone p { margin-top: 0.8rem; color: var(--text-muted); }
-    .control-group { margin-top: 1.5rem; }
-    .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 0.5rem; }
+    .drop-zone p { margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
+    .control-group { margin-top: 1.2rem; }
+    .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem; }
     input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
-    .btn { background: var(--accent); color: #fff; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 1.5rem; font-size: 1rem; transition: 0.2s; }
+    input[type="number"] { background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 0.4rem; border-radius: 6px; width: 80px; text-align: center; }
+    .checkbox-group { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; background: rgba(255,255,255,0.03); padding: 0.6rem 0.8rem; border-radius: 8px; }
+    .btn { background: var(--accent); color: #fff; border: none; padding: 0.8rem 1.2rem; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 1.2rem; font-size: 1rem; transition: 0.2s; }
     .btn:hover { background: var(--accent-hover); }
-    .preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; background: #090d16; border-radius: 12px; border: 1px solid var(--border); padding: 1rem; overflow: hidden; }
-    .preview-box svg { max-width: 100%; max-height: 280px; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
-    .stat-item { background: rgba(255,255,255,0.04); padding: 0.8rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
-    .stat-item span { display: block; color: var(--text-muted); font-size: 0.8rem; }
-    .stat-item strong { color: var(--accent); font-size: 1.1rem; }
-    footer { margin-top: 3rem; color: var(--text-muted); font-size: 0.9rem; text-align: center; }
+    .btn-download { background: var(--success); margin-top: 0.6rem; }
+    .btn-download:hover { background: #059669; }
+    .preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 420px; background: #090d16; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+    #canvas3d { width: 100%; height: 100%; display: block; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin-top: 1rem; font-size: 0.85rem; }
+    .stat-item { background: rgba(255,255,255,0.04); padding: 0.6rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); text-align: center; }
+    .stat-item span { display: block; color: var(--text-muted); font-size: 0.75rem; }
+    .stat-item strong { color: var(--accent); font-size: 1rem; }
+    .downloads-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    footer { margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
     footer a { color: var(--accent); text-decoration: none; font-weight: bold; }
   </style>
 </head>
 <body>
   <header>
-    <h1>⚙️ Single-Layer Grinder</h1>
-    <p>Slice 3D STL models into 2D single-layer contours <span class="badge">Ferrox Framework</span></p>
+    <h1>⚙️ Automatic 3D STL Grinder Carver</h1>
+    <p>Carves 2-piece GIZEH-style herb grinders into standing 3D models <span class="badge">Ferrox Framework</span></p>
   </header>
 
   <div class="container">
-    <!-- Left Column: Upload & Controls -->
+    <!-- Left Column: Upload & Parameters -->
     <div class="card">
       <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        <div style="font-size: 3rem;">📥</div>
-        <h3>Drag & Drop STL file here</h3>
+        <div style="font-size: 2.5rem;">📥</div>
+        <h3>Drag & Drop 3D STL file here</h3>
         <p>or click to browse from computer</p>
         <input type="file" id="fileInput" accept=".stl" style="display:none;" onchange="handleFileSelect(event)">
       </div>
 
       <div class="control-group">
         <label>
-          <span>✂️ Slice Height Plane (Z Ratio)</span>
-          <span id="zVal">20%</span>
+          <span>📏 Wall Thickness</span>
+          <span id="wallVal">2.0 mm</span>
         </label>
-        <input type="range" id="zRatio" min="0" max="100" value="20" oninput="updateZVal(this.value)">
+        <input type="range" id="wallThickness" min="1.0" max="5.0" step="0.5" value="2.0" oninput="updateWall(this.value)">
       </div>
 
       <div class="control-group">
         <label>
-          <span>🧊 Layer Thickness</span>
-          <span id="layerVal">0.2 mm</span>
+          <span>⭕ Chamber Diameter (Max <span id="maxDiameterLabel">--</span>)</span>
+          <span id="diamVal">40.0 mm</span>
         </label>
-        <input type="range" id="layerThickness" min="0.1" max="2.0" step="0.1" value="0.2" oninput="updateLayerVal(this.value)">
+        <input type="range" id="chamberDiameter" min="15.0" max="100.0" step="1.0" value="40.0" oninput="updateDiam(this.value)">
       </div>
 
-      <button class="btn" onclick="grindModel()">⚡ Process & Grind Model</button>
+      <div class="control-group">
+        <label>
+          <span>🧊 Grinder Chamber Depth</span>
+          <span id="depthVal">10.0 mm</span>
+        </label>
+        <input type="range" id="chamberDepth" min="6.0" max="25.0" step="1.0" value="10.0" oninput="updateDepth(this.value)">
+      </div>
+
+      <div class="control-group">
+        <label>
+          <span>✂️ Split Plane Z Height</span>
+          <span id="zSplitVal">--</span>
+        </label>
+        <input type="range" id="zSplit" min="0" max="100" value="50" oninput="updateZSplit(this.value)">
+      </div>
+
+      <div class="checkbox-group">
+        <label for="magnetEnabled">🧲 Central Magnet Pockets</label>
+        <input type="checkbox" id="magnetEnabled" checked style="width:20px; height:20px; accent-color:var(--accent);">
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:0.8rem;">
+        <div style="flex:1;">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Magnet Diam (mm)</label>
+          <input type="number" id="magnetDiameter" value="3.1" step="0.1" style="width:100%;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Magnet Depth (mm)</label>
+          <input type="number" id="magnetDepth" value="2.1" step="0.1" style="width:100%;">
+        </div>
+      </div>
+
+      <button class="btn" onclick="carveGrinderModel()">⚡ Carve 3D Grinder Model</button>
     </div>
 
-    <!-- Right Column: Preview & Results -->
+    <!-- Right Column: 3D Preview & Downloads -->
     <div class="card">
-      <h3>🖼️ Single-Layer 2D Contour Preview</h3>
-      <div class="preview-box" id="previewBox">
-        <p style="color: var(--text-muted)">Upload an STL model to view real-time single-layer contour</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+        <h3>🖼️ 3D Viewport (Interlocking GIZEH Teeth)</h3>
+        <span id="statusBadge" style="color:var(--text-muted); font-size:0.85rem;">Ready</span>
       </div>
 
-      <div class="stats-grid" id="statsGrid" style="display:none;">
+      <div class="preview-box">
+        <div id="canvasContainer" style="width:100%; height:100%;"></div>
+        <p id="placeholderText" style="position:absolute; color:var(--text-muted);">Upload a 3D STL model to auto-detect optimal grinder chamber</p>
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
         <div class="stat-item">
-          <span>Target Z Plane</span>
-          <strong id="statCutZ">0.0 mm</strong>
+          <span>Max Diameter</span>
+          <strong id="statMaxDiam">--</strong>
         </div>
         <div class="stat-item">
-          <span>Bounding Box (WxDxH)</span>
-          <strong id="statBbox">0 x 0 x 0 mm</strong>
+          <span>Split Height (Z)</span>
+          <strong id="statSplitZ">--</strong>
         </div>
         <div class="stat-item">
-          <span>Contours Found</span>
-          <strong id="statContours">0</strong>
+          <span>Top Triangles</span>
+          <strong id="statTopFaces">--</strong>
         </div>
         <div class="stat-item">
-          <span>Processing Time</span>
-          <strong id="statTime">0 ms</strong>
+          <span>Bottom Triangles</span>
+          <strong id="statBottomFaces">--</strong>
         </div>
+      </div>
+
+      <div class="downloads-container" id="downloadsContainer" style="display:none;">
+        <button class="btn btn-download" onclick="downloadTopStl()">📥 Download Top Part STL</button>
+        <button class="btn btn-download" onclick="downloadBottomStl()">📥 Download Bottom Part STL</button>
       </div>
     </div>
   </div>
 
   <footer>
-    Powered by <a href="https://ferrox-rust.dev/" target="_blank">Ferrox Framework</a> & Rust | Created by AI-Autistic-Intelligence
+    Powered by <a href="https://ferrox-rust.dev/" target="_blank">Ferrox Framework</a> & Rust | GIZEH Teeth Pattern & Magnet Pockets
   </footer>
 
   <script>
     let selectedFile = null;
+    let analysisData = null;
+    let topB64 = null;
+    let bottomB64 = null;
 
-    function updateZVal(val) { document.getElementById('zVal').innerText = val + '%'; }
-    function updateLayerVal(val) { document.getElementById('layerVal').innerText = val + ' mm'; }
+    // Three.js 3D Viewport Setup
+    let scene, camera, renderer, currentMeshGroup;
+
+    function init3D() {
+      const container = document.getElementById('canvasContainer');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x090d16);
+
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(0, -120, 100);
+      camera.up.set(0, 0, 1);
+      camera.lookAt(0, 0, 0);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight1.position.set(100, 100, 200);
+      scene.add(dirLight1);
+
+      const dirLight2 = new THREE.DirectionalLight(0xff5722, 0.4);
+      dirLight2.position.set(-100, -100, -50);
+      scene.add(dirLight2);
+
+      const gridHelper = new THREE.GridHelper(200, 20, 0xff5722, 0x334155);
+      gridHelper.rotation.x = Math.PI / 2;
+      scene.add(gridHelper);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+
+      animate();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (currentMeshGroup) {
+        currentMeshGroup.rotation.z += 0.005;
+      }
+      renderer.render(scene, camera);
+    }
+
+    window.onload = init3D;
+
+    function updateWall(v) { document.getElementById('wallVal').innerText = v + ' mm'; }
+    function updateDiam(v) { document.getElementById('diamVal').innerText = (parseFloat(v)).toFixed(1) + ' mm'; }
+    function updateDepth(v) { document.getElementById('depthVal').innerText = v + ' mm'; }
+    function updateZSplit(v) {
+      if (analysisData) {
+        const minZ = analysisData.min_z;
+        const maxZ = analysisData.max_z;
+        const z = minZ + (maxZ - minZ) * (v / 100.0);
+        document.getElementById('zSplitVal').innerText = z.toFixed(1) + ' mm';
+      }
+    }
 
     const dropZone = document.getElementById('dropZone');
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
-      dropZone.addEventListener(evt, e => e.preventDefault());
-    });
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => dropZone.addEventListener(evt, e => e.preventDefault()));
     dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', e => {
@@ -125,6 +229,7 @@
       if (e.dataTransfer.files.length) {
         selectedFile = e.dataTransfer.files[0];
         dropZone.querySelector('h3').innerText = '📄 ' + selectedFile.name;
+        analyzeModel();
       }
     });
 
@@ -132,47 +237,129 @@
       if (e.target.files.length) {
         selectedFile = e.target.files[0];
         dropZone.querySelector('h3').innerText = '📄 ' + selectedFile.name;
+        analyzeModel();
       }
     }
 
-    async function grindModel() {
+    async function analyzeModel() {
+      if (!selectedFile) return;
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('wall_thickness', document.getElementById('wallThickness').value);
+
+      document.getElementById('statusBadge').innerText = '🔍 Analyzing geometry...';
+
+      try {
+        const res = await fetch('/api/v1/analyze', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+          analysisData = data.analysis;
+          const maxD = analysisData.max_safe_chamber_radius_mm * 2.0;
+
+          document.getElementById('maxDiameterLabel').innerText = maxD.toFixed(1) + ' mm';
+          document.getElementById('statMaxDiam').innerText = maxD.toFixed(1) + ' mm';
+
+          const diamSlider = document.getElementById('chamberDiameter');
+          diamSlider.max = maxD.toFixed(1);
+          diamSlider.value = (maxD * 0.9).toFixed(1);
+          updateDiam(diamSlider.value);
+
+          const zSlider = document.getElementById('zSplit');
+          const zPct = ((analysisData.optimal_z_split_mm - analysisData.min_z) / analysisData.height_mm) * 100.0;
+          zSlider.value = zPct.toFixed(0);
+          updateZSplit(zSlider.value);
+
+          document.getElementById('statusBadge').innerText = '✅ Optimal Section Found';
+          document.getElementById('placeholderText').style.display = 'none';
+
+          render3DPreviewCylinder(maxD / 2.0, analysisData.optimal_z_split_mm);
+        }
+      } catch (err) {
+        document.getElementById('statusBadge').innerText = '❌ Error analyzing file';
+      }
+    }
+
+    function render3DPreviewCylinder(radius, zSplit) {
+      if (currentMeshGroup) scene.remove(currentMeshGroup);
+      currentMeshGroup = new THREE.Group();
+
+      const geom = new THREE.CylinderGeometry(radius, radius, 10, 32);
+      const matTop = new THREE.MeshPhongMaterial({ color: 0xff5722, transparent: true, opacity: 0.8, flatShading: true });
+      const matBottom = new THREE.MeshPhongMaterial({ color: 0x10b981, transparent: true, opacity: 0.8, flatShading: true });
+
+      const topCyl = new THREE.Mesh(geom, matTop);
+      topCyl.position.set(0, 0, 5);
+      topCyl.rotation.x = Math.PI / 2;
+
+      const bottomCyl = new THREE.Mesh(geom, matBottom);
+      bottomCyl.position.set(0, 0, -5);
+      bottomCyl.rotation.x = Math.PI / 2;
+
+      currentMeshGroup.add(topCyl);
+      currentMeshGroup.add(bottomCyl);
+      scene.add(currentMeshGroup);
+    }
+
+    async function carveGrinderModel() {
       if (!selectedFile) {
-        alert('Please select an STL file first!');
+        alert('Please upload an STL file first!');
         return;
       }
 
       const formData = new FormData();
       formData.append('file', selectedFile);
-      formData.append('z_ratio', (document.getElementById('zRatio').value / 100).toString());
-      formData.append('layer_height', document.getElementById('layerThickness').value);
 
-      const start = performance.now();
-      const previewBox = document.getElementById('previewBox');
-      previewBox.innerHTML = '<p style="color: var(--accent);">⚡ Processing 3D mesh in Rust...</p>';
+      if (analysisData) {
+        const v = document.getElementById('zSplit').value;
+        const z = analysisData.min_z + analysisData.height_mm * (v / 100.0);
+        formData.append('z_split', z.toString());
+      }
+
+      formData.append('chamber_radius', (document.getElementById('chamberDiameter').value / 2.0).toString());
+      formData.append('chamber_height', document.getElementById('chamberDepth').value);
+      formData.append('wall_thickness', document.getElementById('wallThickness').value);
+      formData.append('magnet_enabled', document.getElementById('magnetEnabled').checked.toString());
+      formData.append('magnet_diameter', document.getElementById('magnetDiameter').value);
+      formData.append('magnet_depth', document.getElementById('magnetDepth').value);
+
+      document.getElementById('statusBadge').innerText = '⚡ Carving 3D Mesh in Rust...';
 
       try {
-        const res = await fetch('/api/v1/grind', { method: 'POST', body: formData });
-        if (!res.ok) {
-          const text = await res.text();
-          previewBox.innerHTML = `<p style="color: #ef4444;">Server Error (${res.status}): ${text || res.statusText}</p>`;
-          return;
-        }
+        const res = await fetch('/api/v1/carve_grinder', { method: 'POST', body: formData });
         const data = await res.json();
-        const elapsed = (performance.now() - start).toFixed(2);
 
         if (data.success) {
-          previewBox.innerHTML = data.svg_raw;
-          document.getElementById('statsGrid').style.display = 'grid';
-          document.getElementById('statCutZ').innerText = data.slice_z_mm.toFixed(2) + ' mm';
-          document.getElementById('statBbox').innerText = `${data.bounding_box.width_mm.toFixed(1)}x${data.bounding_box.depth_mm.toFixed(1)}x${data.bounding_box.height_mm.toFixed(1)} mm`;
-          document.getElementById('statContours').innerText = data.contours_count;
-          document.getElementById('statTime').innerText = elapsed + ' ms';
+          topB64 = data.top_stl_b64;
+          bottomB64 = data.bottom_stl_b64;
+
+          document.getElementById('statTopFaces').innerText = data.top_triangles;
+          document.getElementById('statBottomFaces').innerText = data.bottom_triangles;
+          document.getElementById('downloadsContainer').style.display = 'grid';
+          document.getElementById('statusBadge').innerText = '✨ 3D Grinder Carved Successfully!';
         } else {
-          previewBox.innerHTML = `<p style="color: #ef4444;">Error: ${data.error}</p>`;
+          alert('Error: ' + data.error);
         }
       } catch (err) {
-        previewBox.innerHTML = `<p style="color: #ef4444;">Server error: ${err.message}</p>`;
+        alert('Server error: ' + err.message);
       }
+    }
+
+    function downloadTopStl() {
+      if (!topB64) return;
+      const link = document.createElement('a');
+      link.href = 'data:application/octet-stream;base64,' + topB64;
+      link.download = 'grinder_top.stl';
+      link.click();
+    }
+
+    function downloadBottomStl() {
+      if (!bottomB64) return;
+      const link = document.createElement('a');
+      link.href = 'data:application/octet-stream;base64,' + bottomB64;
+      link.download = 'grinder_bottom.stl';
+      link.click();
     }
   </script>
 </body>
