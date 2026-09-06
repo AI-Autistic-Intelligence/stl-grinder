@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚙️ Single-Layer Grinder - Powered by Ferrox Framework</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #ff5722;
+      --accent-hover: #f4511e;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text); padding: 2rem; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    header { text-align: center; margin-bottom: 2rem; }
+    header h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    header p { color: var(--text-muted); font-size: 1.1rem; }
+    .badge { background: linear-gradient(135deg, #ff5722, #ff9800); color: #fff; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: bold; font-size: 0.85rem; }
+    .container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; width: 100%; max-width: 1100px; }
+    @media (max-width: 850px) { .container { grid-template-columns: 1fr; } }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .drop-zone { border: 2px dashed var(--accent); border-radius: 12px; padding: 2.5rem 1rem; text-align: center; cursor: pointer; transition: 0.2s ease; background: rgba(255,87,34,0.03); }
+    .drop-zone:hover, .drop-zone.dragover { background: rgba(255,87,34,0.1); border-color: #ff9800; }
+    .drop-zone p { margin-top: 0.8rem; color: var(--text-muted); }
+    .control-group { margin-top: 1.5rem; }
+    .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 0.5rem; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    .btn { background: var(--accent); color: #fff; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 1.5rem; font-size: 1rem; transition: 0.2s; }
+    .btn:hover { background: var(--accent-hover); }
+    .preview-box { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; background: #090d16; border-radius: 12px; border: 1px solid var(--border); padding: 1rem; overflow: hidden; }
+    .preview-box svg { max-width: 100%; max-height: 280px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; }
+    .stat-item { background: rgba(255,255,255,0.04); padding: 0.8rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+    .stat-item span { display: block; color: var(--text-muted); font-size: 0.8rem; }
+    .stat-item strong { color: var(--accent); font-size: 1.1rem; }
+    footer { margin-top: 3rem; color: var(--text-muted); font-size: 0.9rem; text-align: center; }
+    footer a { color: var(--accent); text-decoration: none; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚙️ Single-Layer Grinder</h1>
+    <p>Slice 3D STL models into 2D single-layer contours <span class="badge">Ferrox Framework</span></p>
+  </header>
+
+  <div class="container">
+    <!-- Left Column: Upload & Controls -->
+    <div class="card">
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div style="font-size: 3rem;">📥</div>
+        <h3>Drag & Drop STL file here</h3>
+        <p>or click to browse from computer</p>
+        <input type="file" id="fileInput" accept=".stl" style="display:none;" onchange="handleFileSelect(event)">
+      </div>
+
+      <div class="control-group">
+        <label>
+          <span>✂️ Slice Height Plane (Z Ratio)</span>
+          <span id="zVal">20%</span>
+        </label>
+        <input type="range" id="zRatio" min="0" max="100" value="20" oninput="updateZVal(this.value)">
+      </div>
+
+      <div class="control-group">
+        <label>
+          <span>🧊 Layer Thickness</span>
+          <span id="layerVal">0.2 mm</span>
+        </label>
+        <input type="range" id="layerThickness" min="0.1" max="2.0" step="0.1" value="0.2" oninput="updateLayerVal(this.value)">
+      </div>
+
+      <button class="btn" onclick="grindModel()">⚡ Process & Grind Model</button>
+    </div>
+
+    <!-- Right Column: Preview & Results -->
+    <div class="card">
+      <h3>🖼️ Single-Layer 2D Contour Preview</h3>
+      <div class="preview-box" id="previewBox">
+        <p style="color: var(--text-muted)">Upload an STL model to view real-time single-layer contour</p>
+      </div>
+
+      <div class="stats-grid" id="statsGrid" style="display:none;">
+        <div class="stat-item">
+          <span>Target Z Plane</span>
+          <strong id="statCutZ">0.0 mm</strong>
+        </div>
+        <div class="stat-item">
+          <span>Bounding Box (WxDxH)</span>
+          <strong id="statBbox">0 x 0 x 0 mm</strong>
+        </div>
+        <div class="stat-item">
+          <span>Contours Found</span>
+          <strong id="statContours">0</strong>
+        </div>
+        <div class="stat-item">
+          <span>Processing Time</span>
+          <strong id="statTime">0 ms</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Powered by <a href="https://ferrox-rust.dev/" target="_blank">Ferrox Framework</a> & Rust | Created by AI-Autistic-Intelligence
+  </footer>
+
+  <script>
+    let selectedFile = null;
+
+    function updateZVal(val) { document.getElementById('zVal').innerText = val + '%'; }
+    function updateLayerVal(val) { document.getElementById('layerVal').innerText = val + ' mm'; }
+
+    const dropZone = document.getElementById('dropZone');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+      dropZone.addEventListener(evt, e => e.preventDefault());
+    });
+    dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        selectedFile = e.dataTransfer.files[0];
+        dropZone.querySelector('h3').innerText = '📄 ' + selectedFile.name;
+      }
+    });
+
+    function handleFileSelect(e) {
+      if (e.target.files.length) {
+        selectedFile = e.target.files[0];
+        dropZone.querySelector('h3').innerText = '📄 ' + selectedFile.name;
+      }
+    }
+
+    async function grindModel() {
+      if (!selectedFile) {
+        alert('Please select an STL file first!');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('z_ratio', (document.getElementById('zRatio').value / 100).toString());
+      formData.append('layer_height', document.getElementById('layerThickness').value);
+
+      const start = performance.now();
+      const previewBox = document.getElementById('previewBox');
+      previewBox.innerHTML = '<p style="color: var(--accent);">⚡ Processing 3D mesh in Rust...</p>';
+
+      try {
+        const res = await fetch('/api/v1/grind', { method: 'POST', body: formData });
+        const data = await res.json();
+        const elapsed = (performance.now() - start).toFixed(2);
+
+        if (data.success) {
+          previewBox.innerHTML = data.svg_raw;
+          document.getElementById('statsGrid').style.display = 'grid';
+          document.getElementById('statCutZ').innerText = data.slice_z_mm.toFixed(2) + ' mm';
+          document.getElementById('statBbox').innerText = `${data.bounding_box.width_mm.toFixed(1)}x${data.bounding_box.depth_mm.toFixed(1)}x${data.bounding_box.height_mm.toFixed(1)} mm`;
+          document.getElementById('statContours').innerText = data.contours_count;
+          document.getElementById('statTime').innerText = elapsed + ' ms';
+        } else {
+          previewBox.innerHTML = `<p style="color: #ef4444;">Error: ${data.error}</p>`;
+        }
+      } catch (err) {
+        previewBox.innerHTML = `<p style="color: #ef4444;">Server error: ${err.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>

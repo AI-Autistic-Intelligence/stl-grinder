@@ -1,6 +1,6 @@
 [package]
 name = "stl-grinder"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["AI-Autistic-Intelligence <info@ferrox-rust.dev>"]
 description = "Ultra-fast single-layer 3D mesh slicer, contour generator, and 2D/3D STL extruder powered by Ferrox Framework"
